@@ -89,7 +89,7 @@ class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySen
         if data is None:
             return None
 
-        key = self.entity_description.key
+        key = self._attr_entity_description.key
         if key == "open_windows_recommended":
             return data.open_windows_recommended
         if key == "close_windows_recommended":

@@ -103,7 +103,7 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
         if data is None:
             return None
 
-        key = self.entity_description.key
+        key = self._attr_entity_description.key
         if key == "home_mode":
             return data.home_mode
         if key == "window_recommendation":

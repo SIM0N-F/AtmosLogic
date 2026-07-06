@@ -159,8 +159,67 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         config = self.config
         reading = self._build_input(config)
         if reading is None:
-            return None
+            return self._fallback_recommendation(
+                config,
+                missing_inputs=[
+                    config.indoor_temperature_entity,
+                    config.outdoor_temperature_entity,
+                ],
+            )
         return compute_recommendation(config, reading)
+
+    def _fallback_recommendation(
+        self,
+        config: AtmosLogicConfig,
+        *,
+        missing_inputs: list[str | None],
+    ) -> AtmosLogicRecommendation:
+        missing = [entity_id for entity_id in missing_inputs if entity_id]
+        return AtmosLogicRecommendation(
+            home_mode="comfort",
+            window_recommendation="neutral",
+            cover_recommendation="neutral",
+            laundry_score=50,
+            laundry_recommendation="average",
+            thermal_score=0,
+            open_windows_recommended=False,
+            close_windows_recommended=False,
+            open_covers_recommended=False,
+            close_covers_recommended=False,
+            good_for_laundry=False,
+            details={
+                "config": {
+                    "mode": config.mode,
+                    "comfort_margin": config.comfort_margin,
+                    "strong_wind_threshold": config.strong_wind_threshold,
+                    "high_humidity_threshold": config.high_humidity_threshold,
+                    "rain_threshold": config.rain_threshold,
+                    "windows_enabled": config.windows_enabled,
+                    "covers_enabled": config.covers_enabled,
+                    "laundry_enabled": config.laundry_enabled,
+                },
+                "inputs": {},
+                "signals": {},
+                "breakdown": {
+                    "thermal_score": 0,
+                    "laundry_components": [
+                        {
+                            "reason": "missing_inputs",
+                            "delta": 0,
+                            "missing": missing,
+                        }
+                    ],
+                },
+                "recommendations": {
+                    "home_mode": "comfort",
+                    "window_recommendation": "neutral",
+                    "cover_recommendation": "neutral",
+                    "laundry_recommendation": "average",
+                },
+                "missing_inputs": missing,
+                "data_valid": False,
+            },
+        )
 
     def _build_input(self, config: AtmosLogicConfig) -> AtmosLogicInput | None:
         indoor_temperature = self._read_numeric(config.indoor_temperature_entity)
