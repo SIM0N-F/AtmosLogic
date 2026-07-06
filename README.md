@@ -67,9 +67,10 @@ Optional tuning:
 - windows module toggle
 - covers module toggle
 - notifications toggle
-- notification service name or a comma-separated list, for example `mobile_app_my_phone`
 - per-rule notification toggles for windows, covers, and laundry
 - export/import services for backup and restore
+
+After the integration is created, you can reopen its options from **Settings > Devices & services > AtmosLogic > Configure** to adjust thresholds and notification toggles.
 
 ## Entities
 
@@ -97,7 +98,7 @@ AtmosLogic can also send notifications automatically when a recommendation becom
 
 You can configure:
 
-- a notify service name such as `mobile_app_my_phone`, or a comma-separated list
+- the built-in Home Assistant notify service if it is available
 - window-open notifications
 - window-close notifications
 - cover-open notifications
@@ -105,6 +106,8 @@ You can configure:
 - laundry-ready notifications
 
 Notifications are sent only when a recommendation changes from inactive to active, which helps avoid repeated spam.
+
+If the standard `notify.notify` service is not available, AtmosLogic falls back to a persistent notification so you still see the alert inside Home Assistant.
 
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
 

@@ -16,7 +16,6 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_LAUNDRY_ENABLED,
     CONF_MODE,
-    CONF_NOTIFICATION_SERVICE,
     CONF_NOTIFICATIONS_ENABLED,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
@@ -36,7 +35,6 @@ from .const import (
     CONF_WIND_SPEED_ENTITY,
     DEFAULT_COMFORT_MARGIN,
     DEFAULT_COVERS_ENABLED,
-    DEFAULT_NOTIFICATION_SERVICE,
     DEFAULT_NOTIFICATIONS_ENABLED,
     DEFAULT_NOTIFY_COVER_CLOSE,
     DEFAULT_NOTIFY_COVER_OPEN,
@@ -159,10 +157,6 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
                 default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
             ): selector.BooleanSelector(),
             vol.Optional(
-                CONF_NOTIFICATION_SERVICE,
-                default=defaults.get(CONF_NOTIFICATION_SERVICE, DEFAULT_NOTIFICATION_SERVICE),
-            ): str,
-            vol.Optional(
                 CONF_NOTIFY_WINDOW_OPEN,
                 default=defaults.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN),
             ): selector.BooleanSelector(),
@@ -190,6 +184,7 @@ def _prepare_schema_input(user_input: dict[str, object]) -> dict[str, object]:
     """Normalize optional values for schema validation."""
 
     prepared = dict(user_input)
+    prepared.pop("notification_service", None)
     for key in (
         CONF_INDOOR_HUMIDITY_ENTITY,
         CONF_OUTDOOR_HUMIDITY_ENTITY,
@@ -199,7 +194,6 @@ def _prepare_schema_input(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
-        CONF_NOTIFICATION_SERVICE,
     ):
         if prepared.get(key) is None:
             prepared[key] = ""
@@ -210,6 +204,7 @@ def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
     """Normalize empty optional entity ids to None."""
 
     cleaned = dict(user_input)
+    cleaned.pop("notification_service", None)
     for key in (
         CONF_INDOOR_HUMIDITY_ENTITY,
         CONF_OUTDOOR_HUMIDITY_ENTITY,
@@ -219,7 +214,6 @@ def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
-        CONF_NOTIFICATION_SERVICE,
     ):
         if cleaned.get(key) == "":
             cleaned[key] = None

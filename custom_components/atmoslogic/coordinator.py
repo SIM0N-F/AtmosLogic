@@ -20,7 +20,6 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_LAUNDRY_ENABLED,
     CONF_MODE,
-    CONF_NOTIFICATION_SERVICE,
     CONF_NOTIFICATIONS_ENABLED,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
@@ -40,7 +39,6 @@ from .const import (
     CONF_WIND_SPEED_ENTITY,
     DEFAULT_COMFORT_MARGIN,
     DEFAULT_COVERS_ENABLED,
-    DEFAULT_NOTIFICATION_SERVICE,
     DEFAULT_NOTIFICATIONS_ENABLED,
     DEFAULT_NOTIFY_COVER_CLOSE,
     DEFAULT_NOTIFY_COVER_OPEN,
@@ -122,8 +120,6 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             windows_enabled=bool(merged.get(CONF_WINDOWS_ENABLED, DEFAULT_WINDOWS_ENABLED)),
             covers_enabled=bool(merged.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED)),
             notifications_enabled=bool(merged.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED)),
-            notification_service=str(merged.get(CONF_NOTIFICATION_SERVICE, DEFAULT_NOTIFICATION_SERVICE) or "").strip()
-            or None,
             notify_window_open=bool(merged.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN)),
             notify_window_close=bool(merged.get(CONF_NOTIFY_WINDOW_CLOSE, DEFAULT_NOTIFY_WINDOW_CLOSE)),
             notify_cover_open=bool(merged.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN)),
@@ -178,14 +174,6 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
 
     def _handle_state_change(self, _event: object) -> None:
         self.hass.add_job(self.async_request_refresh)
-
-    def _notification_service_names(self, service_name: str | None) -> list[str]:
-        if not service_name:
-            return []
-
-        normalized = service_name.replace(";", ",").replace("\n", ",")
-        names = [item.strip() for item in normalized.split(",")]
-        return [name.split(".", 1)[1] if name.startswith("notify.") else name for name in names if name]
 
     async def _async_update_data(self) -> AtmosLogicRecommendation | None:
         config = self.config
@@ -270,26 +258,29 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         if not notifications:
             return
 
-        service_names = self._notification_service_names(config.notification_service)
-        if not service_names:
-            _LOGGER.debug("AtmosLogic notifications are enabled but no notify service was configured")
-            return
-
         message = "\n".join(f"- {notification.message}" for notification in notifications)
-        for service_name in service_names:
-            if not self.hass.services.has_service("notify", service_name):
-                _LOGGER.warning("AtmosLogic notify service notify.%s is not available", service_name)
-                continue
-
+        if self.hass.services.has_service("notify", "notify"):
             await self.hass.services.async_call(
                 "notify",
-                service_name,
+                "notify",
                 {
                     "title": "AtmosLogic",
                     "message": message,
                 },
                 blocking=False,
             )
+            return
+
+        _LOGGER.debug("AtmosLogic notify.notify service is not available; using persistent notification fallback")
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "AtmosLogic",
+                "message": message,
+            },
+            blocking=False,
+        )
 
     def _build_input(self, config: AtmosLogicConfig) -> AtmosLogicInput | None:
         indoor_temperature = self._read_numeric(config.indoor_temperature_entity)

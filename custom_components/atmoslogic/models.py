@@ -11,7 +11,6 @@ from .const import (
     DEFAULT_HIGH_HUMIDITY_THRESHOLD,
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
-    DEFAULT_NOTIFICATION_SERVICE,
     DEFAULT_NOTIFICATIONS_ENABLED,
     DEFAULT_NOTIFY_COVER_CLOSE,
     DEFAULT_NOTIFY_COVER_OPEN,
@@ -41,7 +40,6 @@ class AtmosLogicConfig:
     windows_enabled: bool = DEFAULT_WINDOWS_ENABLED
     covers_enabled: bool = DEFAULT_COVERS_ENABLED
     notifications_enabled: bool = DEFAULT_NOTIFICATIONS_ENABLED
-    notification_service: str | None = DEFAULT_NOTIFICATION_SERVICE
     notify_window_open: bool = DEFAULT_NOTIFY_WINDOW_OPEN
     notify_window_close: bool = DEFAULT_NOTIFY_WINDOW_CLOSE
     notify_cover_open: bool = DEFAULT_NOTIFY_COVER_OPEN

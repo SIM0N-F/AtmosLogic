@@ -26,7 +26,6 @@ def make_config(**overrides: object) -> AtmosLogicConfig:
         "windows_enabled": True,
         "covers_enabled": True,
         "notifications_enabled": True,
-        "notification_service": "mobile_app_phone",
         "notify_window_open": True,
         "notify_window_close": True,
         "notify_cover_open": True,
