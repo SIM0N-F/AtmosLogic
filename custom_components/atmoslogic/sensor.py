@@ -78,8 +78,6 @@ async def async_setup_entry(
 class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
     """AtmosLogic sensor."""
 
-    _attr_has_entity_name = True
-
     def __init__(
         self,
         coordinator: AtmosLogicCoordinator,
@@ -87,6 +85,7 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
     ) -> None:
         super().__init__(coordinator)
         self._attr_entity_description = description
+        self._attr_name = f"AtmosLogic {description.name}"
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, coordinator.config_entry.entry_id)},
