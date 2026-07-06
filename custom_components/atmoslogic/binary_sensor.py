@@ -17,26 +17,31 @@ from .coordinator import AtmosLogicCoordinator
 BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
         key="open_windows_recommended",
+        name="Open windows recommended",
         translation_key="open_windows_recommended",
         device_class=BinarySensorDeviceClass.WINDOW,
     ),
     BinarySensorEntityDescription(
         key="close_windows_recommended",
+        name="Close windows recommended",
         translation_key="close_windows_recommended",
         device_class=BinarySensorDeviceClass.WINDOW,
     ),
     BinarySensorEntityDescription(
         key="open_covers_recommended",
+        name="Open covers recommended",
         translation_key="open_covers_recommended",
         device_class=BinarySensorDeviceClass.OPENING,
     ),
     BinarySensorEntityDescription(
         key="close_covers_recommended",
+        name="Close covers recommended",
         translation_key="close_covers_recommended",
         device_class=BinarySensorDeviceClass.OPENING,
     ),
     BinarySensorEntityDescription(
         key="good_for_laundry",
+        name="Good for laundry",
         translation_key="good_for_laundry",
     ),
 )

@@ -19,21 +19,25 @@ from .coordinator import AtmosLogicCoordinator
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="home_mode",
+        name="Home mode",
         translation_key="home_mode",
         icon="mdi:home-thermometer",
     ),
     SensorEntityDescription(
         key="window_recommendation",
+        name="Window recommendation",
         translation_key="window_recommendation",
         icon="mdi:window-open-variant",
     ),
     SensorEntityDescription(
         key="cover_recommendation",
+        name="Cover recommendation",
         translation_key="cover_recommendation",
         icon="mdi:blinds-horizontal",
     ),
     SensorEntityDescription(
         key="laundry_score",
+        name="Laundry score",
         translation_key="laundry_score",
         icon="mdi:tumble-dryer",
         native_unit_of_measurement=PERCENTAGE,
@@ -42,11 +46,13 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     ),
     SensorEntityDescription(
         key="laundry_recommendation",
+        name="Laundry recommendation",
         translation_key="laundry_recommendation",
         icon="mdi:tumble-dryer-alert",
     ),
     SensorEntityDescription(
         key="thermal_score",
+        name="Thermal score",
         translation_key="thermal_score",
         icon="mdi:thermometer",
         state_class=SensorStateClass.MEASUREMENT,

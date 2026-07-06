@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atmoslogic"
-version = "0.1.1"
+version = "0.1.2"
 description = "Weather-Based Environmental Advisor for Home Assistant"
 requires-python = ">=3.12"
 
