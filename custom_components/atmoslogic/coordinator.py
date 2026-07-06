@@ -153,7 +153,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         )
 
     def _handle_state_change(self, _event: object) -> None:
-        self.hass.async_create_task(self.async_request_refresh())
+        self.hass.add_job(self.async_request_refresh)
 
     async def _async_update_data(self) -> AtmosLogicRecommendation | None:
         config = self.config

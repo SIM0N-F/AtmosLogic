@@ -80,6 +80,10 @@ class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySen
         }
 
     @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.data is not None
+
+    @property
     def is_on(self) -> bool | None:
         data = self.coordinator.data
         if data is None:
