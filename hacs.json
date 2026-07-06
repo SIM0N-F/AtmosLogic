@@ -1,6 +1,5 @@
 {
   "name": "AtmosLogic",
-  "content_in_root": true,
   "homeassistant": "2024.6.0",
   "render_readme": true
 }
