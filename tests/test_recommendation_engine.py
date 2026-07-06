@@ -84,6 +84,24 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertEqual(recommendation.laundry_score, 0)
         self.assertFalse(recommendation.good_for_laundry)
 
+    def test_weather_condition_rainy_triggers_rain_logic(self) -> None:
+        config = make_config()
+        reading = AtmosLogicInput(
+            indoor_temperature=21.0,
+            outdoor_temperature=17.0,
+            outdoor_humidity=68.0,
+            wind_speed=6.0,
+            weather_condition="rainy",
+            solar_value=20.0,
+        )
+
+        recommendation = compute_recommendation(config, reading)
+
+        self.assertEqual(recommendation.window_recommendation, "keep_closed")
+        self.assertEqual(recommendation.cover_recommendation, "close")
+        self.assertLess(recommendation.laundry_score, 50)
+        self.assertEqual(recommendation.laundry_recommendation, "poor")
+
     def test_heating_with_sunlight_opens_covers(self) -> None:
         config = make_config(mode="winter")
         reading = AtmosLogicInput(
@@ -102,6 +120,20 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertEqual(recommendation.cover_recommendation, "open")
         self.assertTrue(recommendation.open_covers_recommended)
         self.assertGreater(recommendation.thermal_score, 0)
+
+    def test_climate_snapshot_is_captured_in_details(self) -> None:
+        config = make_config()
+        reading = AtmosLogicInput(
+            indoor_temperature=22.0,
+            outdoor_temperature=20.0,
+            climate_current_temperature=21.5,
+            climate_hvac_action="heating",
+        )
+
+        recommendation = compute_recommendation(config, reading)
+
+        self.assertEqual(recommendation.details["inputs"]["climate_current_temperature"], 21.5)
+        self.assertEqual(recommendation.details["inputs"]["climate_hvac_action"], "heating")
 
     def test_scores_are_clamped(self) -> None:
         config = make_config()

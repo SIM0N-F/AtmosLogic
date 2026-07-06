@@ -5,7 +5,7 @@ from __future__ import annotations
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_CLIMATE_ENTITY,
@@ -41,6 +41,25 @@ from .const import (
 )
 
 
+def _entity_selector(domain: str) -> selector.EntitySelector:
+    """Return a simple entity selector for a specific domain."""
+
+    return selector.EntitySelector(selector.EntitySelectorConfig(domain=domain))
+
+
+def _number_selector(minimum: float, maximum: float, step: float) -> selector.NumberSelector:
+    """Return a number selector for numeric thresholds."""
+
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=minimum,
+            max=maximum,
+            step=step,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
 def _build_schema(defaults: dict[str, object]) -> vol.Schema:
     """Build the config form schema."""
 
@@ -48,62 +67,79 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
         {
             vol.Required(
                 CONF_INDOOR_TEMPERATURE_ENTITY,
-                default=defaults.get(CONF_INDOOR_TEMPERATURE_ENTITY, ""),
-            ): cv.entity_id,
+                default=defaults.get(CONF_INDOOR_TEMPERATURE_ENTITY),
+            ): _entity_selector("sensor"),
             vol.Required(
                 CONF_OUTDOOR_TEMPERATURE_ENTITY,
-                default=defaults.get(CONF_OUTDOOR_TEMPERATURE_ENTITY, ""),
-            ): cv.entity_id,
+                default=defaults.get(CONF_OUTDOOR_TEMPERATURE_ENTITY),
+            ): _entity_selector("sensor"),
             vol.Optional(
                 CONF_TARGET_TEMPERATURE,
                 default=defaults.get(CONF_TARGET_TEMPERATURE, DEFAULT_TARGET_TEMPERATURE),
-            ): vol.All(vol.Coerce(float), vol.Range(min=5.0, max=35.0)),
+            ): _number_selector(5.0, 35.0, 0.5),
             vol.Optional(
                 CONF_INDOOR_HUMIDITY_ENTITY,
-                default=defaults.get(CONF_INDOOR_HUMIDITY_ENTITY, ""),
-            ): vol.Any(cv.entity_id, ""),
+                default=defaults.get(CONF_INDOOR_HUMIDITY_ENTITY),
+            ): _entity_selector("sensor"),
             vol.Optional(
                 CONF_OUTDOOR_HUMIDITY_ENTITY,
-                default=defaults.get(CONF_OUTDOOR_HUMIDITY_ENTITY, ""),
-            ): vol.Any(cv.entity_id, ""),
-            vol.Optional(CONF_RAIN_ENTITY, default=defaults.get(CONF_RAIN_ENTITY, "")): vol.Any(cv.entity_id, ""),
+                default=defaults.get(CONF_OUTDOOR_HUMIDITY_ENTITY),
+            ): _entity_selector("sensor"),
+            vol.Optional(
+                CONF_RAIN_ENTITY,
+                default=defaults.get(CONF_RAIN_ENTITY),
+            ): selector.EntitySelector(selector.EntitySelectorConfig()),
             vol.Optional(
                 CONF_WIND_SPEED_ENTITY,
-                default=defaults.get(CONF_WIND_SPEED_ENTITY, ""),
-            ): vol.Any(cv.entity_id, ""),
-            vol.Optional(CONF_WIND_GUST_ENTITY, default=defaults.get(CONF_WIND_GUST_ENTITY, "")): vol.Any(cv.entity_id, ""),
-            vol.Optional(CONF_SOLAR_ENTITY, default=defaults.get(CONF_SOLAR_ENTITY, "")): vol.Any(cv.entity_id, ""),
-            vol.Optional(CONF_CLIMATE_ENTITY, default=defaults.get(CONF_CLIMATE_ENTITY, "")): vol.Any(cv.entity_id, ""),
-            vol.Optional(CONF_WEATHER_ENTITY, default=defaults.get(CONF_WEATHER_ENTITY, "")): vol.Any(cv.entity_id, ""),
+                default=defaults.get(CONF_WIND_SPEED_ENTITY),
+            ): _entity_selector("sensor"),
+            vol.Optional(
+                CONF_WIND_GUST_ENTITY,
+                default=defaults.get(CONF_WIND_GUST_ENTITY),
+            ): _entity_selector("sensor"),
+            vol.Optional(
+                CONF_SOLAR_ENTITY,
+                default=defaults.get(CONF_SOLAR_ENTITY),
+            ): _entity_selector("sensor"),
+            vol.Optional(
+                CONF_CLIMATE_ENTITY,
+                default=defaults.get(CONF_CLIMATE_ENTITY),
+            ): _entity_selector("climate"),
+            vol.Optional(
+                CONF_WEATHER_ENTITY,
+                default=defaults.get(CONF_WEATHER_ENTITY),
+            ): _entity_selector("weather"),
             vol.Optional(
                 CONF_COMFORT_MARGIN,
                 default=defaults.get(CONF_COMFORT_MARGIN, DEFAULT_COMFORT_MARGIN),
-            ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=5.0)),
+            ): _number_selector(0.1, 5.0, 0.1),
             vol.Optional(
                 CONF_STRONG_WIND_THRESHOLD,
                 default=defaults.get(CONF_STRONG_WIND_THRESHOLD, DEFAULT_STRONG_WIND_THRESHOLD),
-            ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=200.0)),
+            ): _number_selector(1.0, 200.0, 1.0),
             vol.Optional(
                 CONF_HIGH_HUMIDITY_THRESHOLD,
                 default=defaults.get(CONF_HIGH_HUMIDITY_THRESHOLD, DEFAULT_HIGH_HUMIDITY_THRESHOLD),
-            ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=100.0)),
+            ): _number_selector(1.0, 100.0, 1.0),
             vol.Optional(
                 CONF_RAIN_THRESHOLD,
                 default=defaults.get(CONF_RAIN_THRESHOLD, DEFAULT_RAIN_THRESHOLD),
-            ): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=1000.0)),
-            vol.Optional(CONF_MODE, default=defaults.get(CONF_MODE, DEFAULT_MODE)): vol.In(MODES),
+            ): _number_selector(0.0, 1000.0, 0.1),
+            vol.Optional(CONF_MODE, default=defaults.get(CONF_MODE, DEFAULT_MODE)): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=list(MODES))
+            ),
             vol.Optional(
                 CONF_LAUNDRY_ENABLED,
                 default=defaults.get(CONF_LAUNDRY_ENABLED, DEFAULT_LAUNDRY_ENABLED),
-            ): cv.boolean,
+            ): selector.BooleanSelector(),
             vol.Optional(
                 CONF_WINDOWS_ENABLED,
                 default=defaults.get(CONF_WINDOWS_ENABLED, DEFAULT_WINDOWS_ENABLED),
-            ): cv.boolean,
+            ): selector.BooleanSelector(),
             vol.Optional(
                 CONF_COVERS_ENABLED,
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
-            ): cv.boolean,
+            ): selector.BooleanSelector(),
         }
     )
 
