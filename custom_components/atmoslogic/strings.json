@@ -1,0 +1,100 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AtmosLogic",
+        "description": "Weather-Based Environmental Advisor for Home Assistant.",
+        "data": {
+          "indoor_temperature_entity": "Indoor temperature entity",
+          "outdoor_temperature_entity": "Outdoor temperature entity",
+          "target_temperature": "Target temperature",
+          "indoor_humidity_entity": "Indoor humidity entity",
+          "outdoor_humidity_entity": "Outdoor humidity entity",
+          "rain_entity": "Rain entity",
+          "wind_speed_entity": "Average wind entity",
+          "wind_gust_entity": "Wind gust entity",
+          "solar_entity": "Brightness or solar radiation entity",
+          "climate_entity": "Climate entity",
+          "weather_entity": "Weather entity",
+          "comfort_margin": "Comfort margin",
+          "strong_wind_threshold": "Strong wind threshold",
+          "high_humidity_threshold": "High humidity threshold",
+          "rain_threshold": "Rain threshold",
+          "mode": "Mode",
+          "laundry_enabled": "Enable laundry module",
+          "windows_enabled": "Enable window module",
+          "covers_enabled": "Enable cover module"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AtmosLogic options",
+        "description": "Adjust thresholds and feature toggles.",
+        "data": {
+          "indoor_temperature_entity": "Indoor temperature entity",
+          "outdoor_temperature_entity": "Outdoor temperature entity",
+          "target_temperature": "Target temperature",
+          "indoor_humidity_entity": "Indoor humidity entity",
+          "outdoor_humidity_entity": "Outdoor humidity entity",
+          "rain_entity": "Rain entity",
+          "wind_speed_entity": "Average wind entity",
+          "wind_gust_entity": "Wind gust entity",
+          "solar_entity": "Brightness or solar radiation entity",
+          "climate_entity": "Climate entity",
+          "weather_entity": "Weather entity",
+          "comfort_margin": "Comfort margin",
+          "strong_wind_threshold": "Strong wind threshold",
+          "high_humidity_threshold": "High humidity threshold",
+          "rain_threshold": "Rain threshold",
+          "mode": "Mode",
+          "laundry_enabled": "Enable laundry module",
+          "windows_enabled": "Enable window module",
+          "covers_enabled": "Enable cover module"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "home_mode": {
+        "name": "Home mode"
+      },
+      "window_recommendation": {
+        "name": "Window recommendation"
+      },
+      "cover_recommendation": {
+        "name": "Cover recommendation"
+      },
+      "laundry_score": {
+        "name": "Laundry score"
+      },
+      "laundry_recommendation": {
+        "name": "Laundry recommendation"
+      },
+      "thermal_score": {
+        "name": "Thermal score"
+      }
+    },
+    "binary_sensor": {
+      "open_windows_recommended": {
+        "name": "Open windows recommended"
+      },
+      "close_windows_recommended": {
+        "name": "Close windows recommended"
+      },
+      "open_covers_recommended": {
+        "name": "Open covers recommended"
+      },
+      "close_covers_recommended": {
+        "name": "Close covers recommended"
+      },
+      "good_for_laundry": {
+        "name": "Good for laundry"
+      }
+    }
+  }
+}
+

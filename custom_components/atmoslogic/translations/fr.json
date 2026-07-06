@@ -1,0 +1,100 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AtmosLogic",
+        "description": "Assistant environnemental basé sur la météo pour Home Assistant.",
+        "data": {
+          "indoor_temperature_entity": "Entité de température intérieure",
+          "outdoor_temperature_entity": "Entité de température extérieure",
+          "target_temperature": "Température cible",
+          "indoor_humidity_entity": "Entité d'humidité intérieure",
+          "outdoor_humidity_entity": "Entité d'humidité extérieure",
+          "rain_entity": "Entité de pluie",
+          "wind_speed_entity": "Entité de vent moyen",
+          "wind_gust_entity": "Entité de rafales",
+          "solar_entity": "Entité de luminosité ou de rayonnement solaire",
+          "climate_entity": "Entité climate",
+          "weather_entity": "Entité météo",
+          "comfort_margin": "Marge de confort",
+          "strong_wind_threshold": "Seuil de vent fort",
+          "high_humidity_threshold": "Seuil d'humidité élevée",
+          "rain_threshold": "Seuil de pluie",
+          "mode": "Mode",
+          "laundry_enabled": "Activer le module linge",
+          "windows_enabled": "Activer le module fenêtres",
+          "covers_enabled": "Activer le module volets"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options AtmosLogic",
+        "description": "Ajuste les seuils et les modules.",
+        "data": {
+          "indoor_temperature_entity": "Entité de température intérieure",
+          "outdoor_temperature_entity": "Entité de température extérieure",
+          "target_temperature": "Température cible",
+          "indoor_humidity_entity": "Entité d'humidité intérieure",
+          "outdoor_humidity_entity": "Entité d'humidité extérieure",
+          "rain_entity": "Entité de pluie",
+          "wind_speed_entity": "Entité de vent moyen",
+          "wind_gust_entity": "Entité de rafales",
+          "solar_entity": "Entité de luminosité ou de rayonnement solaire",
+          "climate_entity": "Entité climate",
+          "weather_entity": "Entité météo",
+          "comfort_margin": "Marge de confort",
+          "strong_wind_threshold": "Seuil de vent fort",
+          "high_humidity_threshold": "Seuil d'humidité élevée",
+          "rain_threshold": "Seuil de pluie",
+          "mode": "Mode",
+          "laundry_enabled": "Activer le module linge",
+          "windows_enabled": "Activer le module fenêtres",
+          "covers_enabled": "Activer le module volets"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "home_mode": {
+        "name": "Mode maison"
+      },
+      "window_recommendation": {
+        "name": "Recommandation fenêtres"
+      },
+      "cover_recommendation": {
+        "name": "Recommandation volets"
+      },
+      "laundry_score": {
+        "name": "Score linge"
+      },
+      "laundry_recommendation": {
+        "name": "Recommandation linge"
+      },
+      "thermal_score": {
+        "name": "Score thermique"
+      }
+    },
+    "binary_sensor": {
+      "open_windows_recommended": {
+        "name": "Ouverture des fenêtres recommandée"
+      },
+      "close_windows_recommended": {
+        "name": "Fermeture des fenêtres recommandée"
+      },
+      "open_covers_recommended": {
+        "name": "Ouverture des volets recommandée"
+      },
+      "close_covers_recommended": {
+        "name": "Fermeture des volets recommandée"
+      },
+      "good_for_laundry": {
+        "name": "Bon pour le linge"
+      }
+    }
+  }
+}
+

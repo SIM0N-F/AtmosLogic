@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atmoslogic"
+version = "0.1.0"
+description = "Weather-Based Environmental Advisor for Home Assistant"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+packages = []
+
