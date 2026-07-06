@@ -109,6 +109,8 @@ Notifications are sent only when a recommendation changes from inactive to activ
 
 If the standard `notify.notify` service is not available, AtmosLogic falls back to a persistent notification so you still see the alert inside Home Assistant.
 
+For quick access from the device page, the notification toggles are also exposed as config switches inside the AtmosLogic device.
+
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
 
 ## Export and Import

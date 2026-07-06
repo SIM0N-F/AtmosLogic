@@ -106,6 +106,26 @@
       "good_for_laundry": {
         "name": "Bon pour le linge"
       }
+    },
+    "switch": {
+      "notifications_enabled": {
+        "name": "Notifications activées"
+      },
+      "notify_window_open": {
+        "name": "Notifier quand il faut ouvrir les fenêtres"
+      },
+      "notify_window_close": {
+        "name": "Notifier quand il faut fermer les fenêtres"
+      },
+      "notify_cover_open": {
+        "name": "Notifier quand il faut ouvrir les volets"
+      },
+      "notify_cover_close": {
+        "name": "Notifier quand il faut fermer les volets"
+      },
+      "notify_laundry_good": {
+        "name": "Notifier quand le linge est prêt"
+      }
     }
   }
 }

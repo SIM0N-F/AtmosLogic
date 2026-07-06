@@ -5,6 +5,7 @@ from __future__ import annotations
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
@@ -278,7 +279,8 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
         )
 
 
-async def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> AtmosLogicOptionsFlow:
+@callback
+def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> AtmosLogicOptionsFlow:
     """Return the options flow handler."""
 
     return AtmosLogicOptionsFlow(config_entry)

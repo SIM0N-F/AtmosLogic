@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
@@ -19,28 +18,24 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
         key="open_windows_recommended",
         name="Open windows recommended",
         translation_key="open_windows_recommended",
-        device_class=BinarySensorDeviceClass.WINDOW,
         icon="mdi:window-open-variant",
     ),
     BinarySensorEntityDescription(
         key="close_windows_recommended",
         name="Close windows recommended",
         translation_key="close_windows_recommended",
-        device_class=BinarySensorDeviceClass.WINDOW,
         icon="mdi:window-closed-variant",
     ),
     BinarySensorEntityDescription(
         key="open_covers_recommended",
         name="Open covers recommended",
         translation_key="open_covers_recommended",
-        device_class=BinarySensorDeviceClass.OPENING,
         icon="mdi:blinds-open",
     ),
     BinarySensorEntityDescription(
         key="close_covers_recommended",
         name="Close covers recommended",
         translation_key="close_covers_recommended",
-        device_class=BinarySensorDeviceClass.OPENING,
         icon="mdi:blinds",
     ),
     BinarySensorEntityDescription(
@@ -76,6 +71,7 @@ class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySen
     ) -> None:
         super().__init__(coordinator)
         self._attr_entity_description = description
+        self._attr_icon = description.icon
         self._attr_name = f"AtmosLogic {description.name}"
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
         self._attr_device_info = {

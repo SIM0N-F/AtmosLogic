@@ -106,6 +106,26 @@
       "good_for_laundry": {
         "name": "Good for laundry"
       }
+    },
+    "switch": {
+      "notifications_enabled": {
+        "name": "Notifications enabled"
+      },
+      "notify_window_open": {
+        "name": "Notify windows should open"
+      },
+      "notify_window_close": {
+        "name": "Notify windows should close"
+      },
+      "notify_cover_open": {
+        "name": "Notify covers should open"
+      },
+      "notify_cover_close": {
+        "name": "Notify covers should close"
+      },
+      "notify_laundry_good": {
+        "name": "Notify when laundry is good"
+      }
     }
   }
 }

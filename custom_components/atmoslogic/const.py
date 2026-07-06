@@ -10,11 +10,12 @@ except ModuleNotFoundError:  # pragma: no cover - test environment fallback
 
         SENSOR = "sensor"
         BINARY_SENSOR = "binary_sensor"
+        SWITCH = "switch"
 
 DOMAIN = "atmoslogic"
 NAME = "AtmosLogic"
 
-PLATFORMS: tuple[Platform, ...] = (Platform.SENSOR, Platform.BINARY_SENSOR)
+PLATFORMS: tuple[Platform, ...] = (Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH)
 
 CONF_INDOOR_TEMPERATURE_ENTITY = "indoor_temperature_entity"
 CONF_OUTDOOR_TEMPERATURE_ENTITY = "outdoor_temperature_entity"
