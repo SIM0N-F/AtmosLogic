@@ -20,6 +20,13 @@
           "strong_wind_threshold": "Seuil de vent fort",
           "high_humidity_threshold": "Seuil d'humidité élevée",
           "rain_threshold": "Seuil de pluie",
+          "notifications_enabled": "Activer les notifications",
+          "notification_service": "Service(s) de notification",
+          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
+          "notify_window_close": "Notifier quand il faut fermer les fenetres",
+          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
+          "notify_cover_close": "Notifier quand il faut fermer les volets",
+          "notify_laundry_good": "Notifier quand le linge peut etre etendu",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
@@ -49,6 +56,13 @@
           "strong_wind_threshold": "Seuil de vent fort",
           "high_humidity_threshold": "Seuil d'humidité élevée",
           "rain_threshold": "Seuil de pluie",
+          "notifications_enabled": "Activer les notifications",
+          "notification_service": "Service(s) de notification",
+          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
+          "notify_window_close": "Notifier quand il faut fermer les fenetres",
+          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
+          "notify_cover_close": "Notifier quand il faut fermer les volets",
+          "notify_laundry_good": "Notifier quand le linge peut etre etendu",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
@@ -97,4 +111,3 @@
     }
   }
 }
-

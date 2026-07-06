@@ -66,6 +66,9 @@ Optional tuning:
 - laundry module toggle
 - windows module toggle
 - covers module toggle
+- notifications toggle
+- notification service name or a comma-separated list, for example `mobile_app_my_phone`
+- per-rule notification toggles for windows, covers, and laundry
 
 ## Entities
 
@@ -85,6 +88,23 @@ Optional tuning:
 - `binary_sensor.atmoslogic_open_covers_recommended`
 - `binary_sensor.atmoslogic_close_covers_recommended`
 - `binary_sensor.atmoslogic_good_for_laundry`
+
+## Notifications
+
+AtmosLogic can also send notifications automatically when a recommendation becomes active.
+
+You can configure:
+
+- a notify service name such as `mobile_app_my_phone`, or a comma-separated list
+- window-open notifications
+- window-close notifications
+- cover-open notifications
+- cover-close notifications
+- laundry-ready notifications
+
+Notifications are sent only when a recommendation changes from inactive to active, which helps avoid repeated spam.
+
+If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
 
 ## Quick logic summary
 
@@ -117,4 +137,3 @@ python -m unittest discover -s tests -p "test_*.py"
 
 - This is a first functional version, not a complete automation platform.
 - It is designed to stay advisory so you can build your own automations on top of the recommendation entities.
-

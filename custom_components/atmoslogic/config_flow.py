@@ -16,6 +16,8 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_LAUNDRY_ENABLED,
     CONF_MODE,
+    CONF_NOTIFICATION_SERVICE,
+    CONF_NOTIFICATIONS_ENABLED,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_RAIN_ENTITY,
@@ -23,12 +25,24 @@ from .const import (
     CONF_SOLAR_ENTITY,
     CONF_STRONG_WIND_THRESHOLD,
     CONF_TARGET_TEMPERATURE,
+    CONF_NOTIFY_COVER_CLOSE,
+    CONF_NOTIFY_COVER_OPEN,
+    CONF_NOTIFY_LAUNDRY_GOOD,
+    CONF_NOTIFY_WINDOW_CLOSE,
+    CONF_NOTIFY_WINDOW_OPEN,
     CONF_WEATHER_ENTITY,
     CONF_WINDOWS_ENABLED,
     CONF_WIND_GUST_ENTITY,
     CONF_WIND_SPEED_ENTITY,
     DEFAULT_COMFORT_MARGIN,
     DEFAULT_COVERS_ENABLED,
+    DEFAULT_NOTIFICATION_SERVICE,
+    DEFAULT_NOTIFICATIONS_ENABLED,
+    DEFAULT_NOTIFY_COVER_CLOSE,
+    DEFAULT_NOTIFY_COVER_OPEN,
+    DEFAULT_NOTIFY_LAUNDRY_GOOD,
+    DEFAULT_NOTIFY_WINDOW_CLOSE,
+    DEFAULT_NOTIFY_WINDOW_OPEN,
     DEFAULT_HIGH_HUMIDITY_THRESHOLD,
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
@@ -140,6 +154,34 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
                 CONF_COVERS_ENABLED,
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
             ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFICATIONS_ENABLED,
+                default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFICATION_SERVICE,
+                default=defaults.get(CONF_NOTIFICATION_SERVICE, DEFAULT_NOTIFICATION_SERVICE),
+            ): str,
+            vol.Optional(
+                CONF_NOTIFY_WINDOW_OPEN,
+                default=defaults.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_WINDOW_CLOSE,
+                default=defaults.get(CONF_NOTIFY_WINDOW_CLOSE, DEFAULT_NOTIFY_WINDOW_CLOSE),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_COVER_OPEN,
+                default=defaults.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_COVER_CLOSE,
+                default=defaults.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_LAUNDRY_GOOD,
+                default=defaults.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD),
+            ): selector.BooleanSelector(),
         }
     )
 
@@ -157,6 +199,7 @@ def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
+        CONF_NOTIFICATION_SERVICE,
     ):
         if cleaned.get(key) == "":
             cleaned[key] = None

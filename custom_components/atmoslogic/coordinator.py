@@ -20,6 +20,8 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_LAUNDRY_ENABLED,
     CONF_MODE,
+    CONF_NOTIFICATION_SERVICE,
+    CONF_NOTIFICATIONS_ENABLED,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_RAIN_ENTITY,
@@ -27,12 +29,24 @@ from .const import (
     CONF_SOLAR_ENTITY,
     CONF_STRONG_WIND_THRESHOLD,
     CONF_TARGET_TEMPERATURE,
+    CONF_NOTIFY_COVER_CLOSE,
+    CONF_NOTIFY_COVER_OPEN,
+    CONF_NOTIFY_LAUNDRY_GOOD,
+    CONF_NOTIFY_WINDOW_CLOSE,
+    CONF_NOTIFY_WINDOW_OPEN,
     CONF_WEATHER_ENTITY,
     CONF_WINDOWS_ENABLED,
     CONF_WIND_GUST_ENTITY,
     CONF_WIND_SPEED_ENTITY,
     DEFAULT_COMFORT_MARGIN,
     DEFAULT_COVERS_ENABLED,
+    DEFAULT_NOTIFICATION_SERVICE,
+    DEFAULT_NOTIFICATIONS_ENABLED,
+    DEFAULT_NOTIFY_COVER_CLOSE,
+    DEFAULT_NOTIFY_COVER_OPEN,
+    DEFAULT_NOTIFY_LAUNDRY_GOOD,
+    DEFAULT_NOTIFY_WINDOW_CLOSE,
+    DEFAULT_NOTIFY_WINDOW_OPEN,
     DEFAULT_HIGH_HUMIDITY_THRESHOLD,
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
@@ -44,6 +58,7 @@ from .const import (
     UPDATE_INTERVAL_MINUTES,
 )
 from .models import AtmosLogicConfig, AtmosLogicInput, AtmosLogicRecommendation
+from .notification_rules import build_notification_batch
 from .recommendation_engine import compute_recommendation
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,6 +96,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         self.hass = hass
         self.config_entry = entry
         self._unsubscribers: list[Callable[[], None]] = []
+        self._last_recommendation: AtmosLogicRecommendation | None = None
         super().__init__(
             hass,
             _LOGGER,
@@ -105,6 +121,14 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             laundry_enabled=bool(merged.get(CONF_LAUNDRY_ENABLED, DEFAULT_LAUNDRY_ENABLED)),
             windows_enabled=bool(merged.get(CONF_WINDOWS_ENABLED, DEFAULT_WINDOWS_ENABLED)),
             covers_enabled=bool(merged.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED)),
+            notifications_enabled=bool(merged.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED)),
+            notification_service=str(merged.get(CONF_NOTIFICATION_SERVICE, DEFAULT_NOTIFICATION_SERVICE) or "").strip()
+            or None,
+            notify_window_open=bool(merged.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN)),
+            notify_window_close=bool(merged.get(CONF_NOTIFY_WINDOW_CLOSE, DEFAULT_NOTIFY_WINDOW_CLOSE)),
+            notify_cover_open=bool(merged.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN)),
+            notify_cover_close=bool(merged.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE)),
+            notify_laundry_good=bool(merged.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD)),
             indoor_humidity_entity=merged.get(CONF_INDOOR_HUMIDITY_ENTITY) or None,
             outdoor_humidity_entity=merged.get(CONF_OUTDOOR_HUMIDITY_ENTITY) or None,
             rain_entity=merged.get(CONF_RAIN_ENTITY) or None,
@@ -155,18 +179,31 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
     def _handle_state_change(self, _event: object) -> None:
         self.hass.add_job(self.async_request_refresh)
 
+    def _notification_service_names(self, service_name: str | None) -> list[str]:
+        if not service_name:
+            return []
+
+        normalized = service_name.replace(";", ",").replace("\n", ",")
+        names = [item.strip() for item in normalized.split(",")]
+        return [name.split(".", 1)[1] if name.startswith("notify.") else name for name in names if name]
+
     async def _async_update_data(self) -> AtmosLogicRecommendation | None:
         config = self.config
         reading = self._build_input(config)
         if reading is None:
-            return self._fallback_recommendation(
+            recommendation = self._fallback_recommendation(
                 config,
                 missing_inputs=[
                     config.indoor_temperature_entity,
                     config.outdoor_temperature_entity,
                 ],
             )
-        return compute_recommendation(config, reading)
+        else:
+            recommendation = compute_recommendation(config, reading)
+
+        await self._maybe_send_notifications(config, recommendation)
+        self._last_recommendation = recommendation
+        return recommendation
 
     def _fallback_recommendation(
         self,
@@ -220,6 +257,39 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
                 "data_valid": False,
             },
         )
+
+    async def _maybe_send_notifications(
+        self,
+        config: AtmosLogicConfig,
+        recommendation: AtmosLogicRecommendation,
+    ) -> None:
+        """Send configured notifications when recommendations rise."""
+
+        previous = self._last_recommendation
+        notifications = build_notification_batch(config, previous, recommendation)
+        if not notifications:
+            return
+
+        service_names = self._notification_service_names(config.notification_service)
+        if not service_names:
+            _LOGGER.debug("AtmosLogic notifications are enabled but no notify service was configured")
+            return
+
+        message = "\n".join(f"- {notification.message}" for notification in notifications)
+        for service_name in service_names:
+            if not self.hass.services.has_service("notify", service_name):
+                _LOGGER.warning("AtmosLogic notify service notify.%s is not available", service_name)
+                continue
+
+            await self.hass.services.async_call(
+                "notify",
+                service_name,
+                {
+                    "title": "AtmosLogic",
+                    "message": message,
+                },
+                blocking=False,
+            )
 
     def _build_input(self, config: AtmosLogicConfig) -> AtmosLogicInput | None:
         indoor_temperature = self._read_numeric(config.indoor_temperature_entity)

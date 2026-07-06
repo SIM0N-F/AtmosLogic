@@ -11,6 +11,13 @@ from .const import (
     DEFAULT_HIGH_HUMIDITY_THRESHOLD,
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
+    DEFAULT_NOTIFICATION_SERVICE,
+    DEFAULT_NOTIFICATIONS_ENABLED,
+    DEFAULT_NOTIFY_COVER_CLOSE,
+    DEFAULT_NOTIFY_COVER_OPEN,
+    DEFAULT_NOTIFY_LAUNDRY_GOOD,
+    DEFAULT_NOTIFY_WINDOW_CLOSE,
+    DEFAULT_NOTIFY_WINDOW_OPEN,
     DEFAULT_RAIN_THRESHOLD,
     DEFAULT_STRONG_WIND_THRESHOLD,
     DEFAULT_TARGET_TEMPERATURE,
@@ -33,6 +40,13 @@ class AtmosLogicConfig:
     laundry_enabled: bool = DEFAULT_LAUNDRY_ENABLED
     windows_enabled: bool = DEFAULT_WINDOWS_ENABLED
     covers_enabled: bool = DEFAULT_COVERS_ENABLED
+    notifications_enabled: bool = DEFAULT_NOTIFICATIONS_ENABLED
+    notification_service: str | None = DEFAULT_NOTIFICATION_SERVICE
+    notify_window_open: bool = DEFAULT_NOTIFY_WINDOW_OPEN
+    notify_window_close: bool = DEFAULT_NOTIFY_WINDOW_CLOSE
+    notify_cover_open: bool = DEFAULT_NOTIFY_COVER_OPEN
+    notify_cover_close: bool = DEFAULT_NOTIFY_COVER_CLOSE
+    notify_laundry_good: bool = DEFAULT_NOTIFY_LAUNDRY_GOOD
     indoor_humidity_entity: str | None = None
     outdoor_humidity_entity: str | None = None
     rain_entity: str | None = None
@@ -79,4 +93,3 @@ class AtmosLogicRecommendation:
     close_covers_recommended: bool
     good_for_laundry: bool
     details: dict[str, Any] = field(default_factory=dict)
-

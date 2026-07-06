@@ -20,6 +20,13 @@
           "strong_wind_threshold": "Strong wind threshold",
           "high_humidity_threshold": "High humidity threshold",
           "rain_threshold": "Rain threshold",
+          "notifications_enabled": "Enable notifications",
+          "notification_service": "Notification service(s)",
+          "notify_window_open": "Notify when windows should open",
+          "notify_window_close": "Notify when windows should close",
+          "notify_cover_open": "Notify when covers should open",
+          "notify_cover_close": "Notify when covers should close",
+          "notify_laundry_good": "Notify when laundry conditions are good",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
@@ -49,6 +56,13 @@
           "strong_wind_threshold": "Strong wind threshold",
           "high_humidity_threshold": "High humidity threshold",
           "rain_threshold": "Rain threshold",
+          "notifications_enabled": "Enable notifications",
+          "notification_service": "Notification service(s)",
+          "notify_window_open": "Notify when windows should open",
+          "notify_window_close": "Notify when windows should close",
+          "notify_cover_open": "Notify when covers should open",
+          "notify_cover_close": "Notify when covers should close",
+          "notify_laundry_good": "Notify when laundry conditions are good",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
@@ -97,4 +111,3 @@
     }
   }
 }
-
