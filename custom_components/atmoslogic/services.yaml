@@ -1,0 +1,27 @@
+export_configuration:
+  name: Export configuration
+  description: Export an AtmosLogic configuration as JSON into a persistent notification.
+  fields:
+    entry_id:
+      name: Config entry ID
+      description: Optional AtmosLogic config entry to export. Required if you have more than one.
+      required: false
+      selector:
+        text:
+
+import_configuration:
+  name: Import configuration
+  description: Import an AtmosLogic configuration from JSON.
+  fields:
+    configuration:
+      name: Configuration JSON
+      description: JSON payload exported by AtmosLogic.
+      required: true
+      selector:
+        text:
+    entry_id:
+      name: Config entry ID
+      description: Optional existing AtmosLogic config entry to replace.
+      required: false
+      selector:
+        text:

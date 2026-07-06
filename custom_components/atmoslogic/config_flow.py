@@ -186,6 +186,26 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
     )
 
 
+def _prepare_schema_input(user_input: dict[str, object]) -> dict[str, object]:
+    """Normalize optional values for schema validation."""
+
+    prepared = dict(user_input)
+    for key in (
+        CONF_INDOOR_HUMIDITY_ENTITY,
+        CONF_OUTDOOR_HUMIDITY_ENTITY,
+        CONF_RAIN_ENTITY,
+        CONF_WIND_SPEED_ENTITY,
+        CONF_WIND_GUST_ENTITY,
+        CONF_SOLAR_ENTITY,
+        CONF_CLIMATE_ENTITY,
+        CONF_WEATHER_ENTITY,
+        CONF_NOTIFICATION_SERVICE,
+    ):
+        if prepared.get(key) is None:
+            prepared[key] = ""
+    return prepared
+
+
 def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
     """Normalize empty optional entity ids to None."""
 
@@ -215,7 +235,7 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                data = _clean_data(_build_schema({})(user_input))
+                data = _clean_data(_build_schema({})(_prepare_schema_input(user_input)))
             except vol.Invalid:
                 errors["base"] = "invalid_input"
             else:
@@ -226,6 +246,17 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_build_schema({}),
             errors=errors,
         )
+
+    async def async_step_import(self, user_input: dict[str, object]) -> config_entries.ConfigFlowResult:
+        """Import an AtmosLogic configuration payload."""
+
+        try:
+            data = _clean_data(_build_schema({})(_prepare_schema_input(user_input)))
+        except vol.Invalid:
+            return self.async_abort(reason="invalid_input")
+
+        title = str(self.context.get("title") or "AtmosLogic")
+        return self.async_create_entry(title=title, data=data)
 
 
 class AtmosLogicOptionsFlow(config_entries.OptionsFlow):

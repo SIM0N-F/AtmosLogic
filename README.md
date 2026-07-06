@@ -69,6 +69,7 @@ Optional tuning:
 - notifications toggle
 - notification service name or a comma-separated list, for example `mobile_app_my_phone`
 - per-rule notification toggles for windows, covers, and laundry
+- export/import services for backup and restore
 
 ## Entities
 
@@ -88,6 +89,7 @@ Optional tuning:
 - `binary_sensor.atmoslogic_open_covers_recommended`
 - `binary_sensor.atmoslogic_close_covers_recommended`
 - `binary_sensor.atmoslogic_good_for_laundry`
+  - these expose custom Material Design icons such as `mdi:window-open-variant`
 
 ## Notifications
 
@@ -105,6 +107,22 @@ You can configure:
 Notifications are sent only when a recommendation changes from inactive to active, which helps avoid repeated spam.
 
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
+
+## Export and Import
+
+AtmosLogic exposes two Home Assistant services:
+
+- `atmoslogic.export_configuration`
+- `atmoslogic.import_configuration`
+
+`export_configuration` creates a persistent notification containing a JSON backup of the selected config entry.
+
+`import_configuration` accepts that JSON back and either:
+
+- creates a new AtmosLogic config entry, or
+- replaces an existing one if you pass `entry_id`
+
+This is useful for moving a setup between Home Assistant instances or restoring a known-good configuration.
 
 ## Quick logic summary
 

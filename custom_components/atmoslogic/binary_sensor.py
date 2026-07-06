@@ -20,29 +20,34 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
         name="Open windows recommended",
         translation_key="open_windows_recommended",
         device_class=BinarySensorDeviceClass.WINDOW,
+        icon="mdi:window-open-variant",
     ),
     BinarySensorEntityDescription(
         key="close_windows_recommended",
         name="Close windows recommended",
         translation_key="close_windows_recommended",
         device_class=BinarySensorDeviceClass.WINDOW,
+        icon="mdi:window-closed-variant",
     ),
     BinarySensorEntityDescription(
         key="open_covers_recommended",
         name="Open covers recommended",
         translation_key="open_covers_recommended",
         device_class=BinarySensorDeviceClass.OPENING,
+        icon="mdi:blinds-open",
     ),
     BinarySensorEntityDescription(
         key="close_covers_recommended",
         name="Close covers recommended",
         translation_key="close_covers_recommended",
         device_class=BinarySensorDeviceClass.OPENING,
+        icon="mdi:blinds",
     ),
     BinarySensorEntityDescription(
         key="good_for_laundry",
         name="Good for laundry",
         translation_key="good_for_laundry",
+        icon="mdi:tumble-dryer-check",
     ),
 )
 
