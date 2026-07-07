@@ -78,6 +78,7 @@ The room selector is shown directly on the main setup page, so you do not need t
 
 ### Sensors
 
+- `sensor.atmoslogic_rooms_summary`
 - `sensor.atmoslogic_home_mode`
 - `sensor.atmoslogic_window_recommendation`
 - `sensor.atmoslogic_cover_recommendation`

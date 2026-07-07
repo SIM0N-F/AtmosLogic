@@ -53,6 +53,23 @@ class RoomHelpersTest(unittest.TestCase):
         self.assertEqual(rooms[1].name, "Chambre")
         self.assertEqual(rooms[1].temperature_entity, "sensor.bedroom_temperature")
 
+    def test_skips_areas_without_temperature_sensor(self) -> None:
+        registry = FakeAreaRegistry(
+            {
+                "living_room": FakeArea("Salon", None),
+            }
+        )
+
+        with patch("custom_components.atmoslogic.rooms.area_registry.async_get", return_value=registry):
+            rooms = build_room_configs(
+                object(),
+                {
+                    "room_areas": ["living_room"],
+                },
+            )
+
+        self.assertEqual(rooms, ())
+
     def test_falls_back_to_legacy_room_slots(self) -> None:
         rooms = build_room_configs(
             None,

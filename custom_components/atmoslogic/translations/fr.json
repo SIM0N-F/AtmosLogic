@@ -35,7 +35,7 @@
       },
       "rooms": {
         "title": "Pièces",
-        "description": "Sélectionne les zones Home Assistant à surveiller.",
+        "description": "Sélectionne les zones Home Assistant à surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
         "data": {
           "room_areas": "Pièces à surveiller"
         }
@@ -85,7 +85,7 @@
       },
       "rooms": {
         "title": "Pièces",
-        "description": "Sélectionne les zones Home Assistant à surveiller.",
+        "description": "Sélectionne les zones Home Assistant à surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
         "data": {
           "room_areas": "Pièces à surveiller"
         }
@@ -101,6 +101,9 @@
   },
   "entity": {
     "sensor": {
+      "rooms_summary": {
+        "name": "Résumé des pièces"
+      },
       "home_mode": {
         "name": "Mode maison"
       },

@@ -35,7 +35,7 @@
       },
       "rooms": {
         "title": "Rooms",
-        "description": "Select the Home Assistant areas you want AtmosLogic to monitor.",
+        "description": "Select the Home Assistant areas you want AtmosLogic to monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
         "data": {
           "room_areas": "Rooms to monitor"
         }
@@ -85,7 +85,7 @@
       },
       "rooms": {
         "title": "Rooms",
-        "description": "Select the Home Assistant areas you want AtmosLogic to monitor.",
+        "description": "Select the Home Assistant areas you want AtmosLogic to monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
         "data": {
           "room_areas": "Rooms to monitor"
         }
@@ -101,6 +101,9 @@
   },
   "entity": {
     "sensor": {
+      "rooms_summary": {
+        "name": "Rooms summary"
+      },
       "home_mode": {
         "name": "Home mode"
       },

@@ -10,14 +10,21 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import area_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import CONF_ROOM_AREAS, DOMAIN
 from .coordinator import AtmosLogicCoordinator
 from .rooms import AtmosLogicRoomConfig
 
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="rooms_summary",
+        name="Rooms summary",
+        translation_key="rooms_summary",
+        icon="mdi:home-group",
+    ),
     SensorEntityDescription(
         key="home_mode",
         name="Home mode",
@@ -117,6 +124,9 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
 
     @property
     def native_value(self):  # type: ignore[override]
+        if self._attr_entity_description.key == "rooms_summary":
+            return self._rooms_summary_state()
+
         data = self.coordinator.data if self._room is None else self.coordinator.room_recommendations.get(self._room.key)
         if data is None:
             return None
@@ -138,7 +148,61 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, object] | None:
+        if self._attr_entity_description.key == "rooms_summary":
+            return self._rooms_summary_attributes()
+
         data = self.coordinator.data if self._room is None else self.coordinator.room_recommendations.get(self._room.key)
         if data is None:
             return None
         return data.details
+
+    def _rooms_summary_state(self) -> str:
+        merged = {**self.coordinator.config_entry.data, **self.coordinator.config_entry.options}
+        selected_room_area_ids = merged.get(CONF_ROOM_AREAS)
+        if not isinstance(selected_room_area_ids, list) or not selected_room_area_ids:
+            return "No rooms selected"
+
+        rooms = self.coordinator.config.room_configs
+        if not rooms:
+            return "No area temperature sensor configured"
+
+        return f"{len(rooms)} rooms configured"
+
+    def _rooms_summary_attributes(self) -> dict[str, object]:
+        merged = {**self.coordinator.config_entry.data, **self.coordinator.config_entry.options}
+        selected_room_area_ids = merged.get(CONF_ROOM_AREAS)
+        registry = area_registry.async_get(self.coordinator.hass)
+        selected_areas: list[dict[str, object]] = []
+        missing_temperature_areas: list[str] = []
+
+        if isinstance(selected_room_area_ids, list):
+            for area_id_value in selected_room_area_ids:
+                area_id = str(area_id_value).strip()
+                if not area_id:
+                    continue
+                area = registry.async_get_area(area_id)
+                area_name = area.name if area is not None and area.name else area_id
+                temperature_entity = area.temperature_entity_id if area is not None else None
+                selected_areas.append(
+                    {
+                        "area_id": area_id,
+                        "name": area_name,
+                        "temperature_entity": temperature_entity,
+                    }
+                )
+                if not temperature_entity:
+                    missing_temperature_areas.append(area_name)
+
+        return {
+            "selected_areas": selected_areas,
+            "configured_rooms": [
+                {
+                    "area_id": room.area_id,
+                    "name": room.name,
+                    "temperature_entity": room.temperature_entity,
+                }
+                for room in self.coordinator.config.room_configs
+            ],
+            "missing_temperature_areas": missing_temperature_areas,
+            "summary": self.native_value,
+        }

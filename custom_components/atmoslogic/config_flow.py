@@ -75,7 +75,16 @@ def _entity_selector(domain: str) -> selector.EntitySelector:
 def _area_selector() -> selector.AreaSelector:
     """Return a selector for Home Assistant areas."""
 
-    return selector.AreaSelector(selector.AreaSelectorConfig(multiple=True, reorder=True))
+    return selector.AreaSelector(
+        selector.AreaSelectorConfig(
+            multiple=True,
+            reorder=True,
+            entity={
+                "domain": ["sensor"],
+                "device_class": ["temperature"],
+            },
+        )
+    )
 
 
 def _number_selector(minimum: float, maximum: float, step: float) -> selector.NumberSelector:
