@@ -63,6 +63,43 @@ def _is_night(reading: AtmosLogicInput) -> bool:
     return False
 
 
+def _confidence(reading: AtmosLogicInput) -> int:
+    score = 100
+    penalties = (
+        (reading.indoor_humidity, 5),
+        (reading.outdoor_humidity, 5),
+        (reading.solar_value, 5),
+        (reading.weather_condition, 5),
+        (reading.climate_current_temperature, 5),
+        (reading.climate_hvac_action, 5),
+    )
+    for value, penalty in penalties:
+        if value is None:
+            score -= penalty
+
+    if reading.wind_speed is None and reading.wind_gust is None:
+        score -= 10
+    if reading.sun_above_horizon is None:
+        score -= 5
+    if not reading.weather_rain_forecast and reading.weather_condition is None:
+        score -= 5
+
+    return int(clamp(score, 0, 100))
+
+
+def _thermal_reasons(reading: AtmosLogicInput, config: AtmosLogicConfig) -> list[str]:
+    reasons: list[str] = []
+    delta = reading.indoor_temperature - reading.target_temperature
+    if abs(delta) <= config.comfort_margin:
+        reasons.append("temperature_close_to_target")
+    elif delta > 0:
+        reasons.append("indoor_temperature_above_target")
+    else:
+        reasons.append("indoor_temperature_below_target")
+
+    return reasons
+
+
 def _rain_detected(config: AtmosLogicConfig, reading: AtmosLogicInput) -> bool:
     if reading.rain_detected:
         return True
@@ -104,6 +141,24 @@ def _home_mode(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: bool, s
     return "preserve_heat"
 
 
+def _mode_reasons(
+    config: AtmosLogicConfig,
+    reading: AtmosLogicInput,
+    rain: bool,
+    strong_wind: bool,
+) -> list[str]:
+    reasons = _thermal_reasons(reading, config)
+    if rain:
+        reasons.append("rain_detected")
+    if strong_wind:
+        reasons.append("strong_wind_detected")
+    if _solar_available(reading):
+        reasons.append("solar_available")
+    if _is_night(reading):
+        reasons.append("nighttime")
+    return reasons
+
+
 def _window_recommendation(
     config: AtmosLogicConfig,
     reading: AtmosLogicInput,
@@ -138,6 +193,43 @@ def _window_recommendation(
     return "neutral"
 
 
+def _window_reasons(
+    config: AtmosLogicConfig,
+    reading: AtmosLogicInput,
+    rain: bool,
+    strong_wind: bool,
+) -> list[str]:
+    reasons: list[str] = []
+    if not config.windows_enabled:
+        reasons.append("module_disabled")
+        return reasons
+    if rain:
+        reasons.append("rain_detected")
+    if strong_wind:
+        reasons.append("strong_wind_detected")
+
+    delta = reading.indoor_temperature - reading.target_temperature
+    outside_vs_inside = reading.outdoor_temperature - reading.indoor_temperature
+    if delta > config.comfort_margin:
+        reasons.append("indoor_hotter_than_target")
+        if outside_vs_inside <= -3:
+            reasons.append("outside_much_cooler")
+        elif outside_vs_inside <= -1:
+            reasons.append("outside_cooler")
+        else:
+            reasons.append("outside_not_cooler_enough")
+    elif delta < -config.comfort_margin:
+        reasons.append("indoor_cooler_than_target")
+        if outside_vs_inside >= 1:
+            reasons.append("outside_warmer")
+        else:
+            reasons.append("outside_not_warmer_enough")
+    else:
+        reasons.append("temperature_within_comfort_margin")
+
+    return reasons
+
+
 def _cover_recommendation(
     config: AtmosLogicConfig,
     reading: AtmosLogicInput,
@@ -168,6 +260,38 @@ def _cover_recommendation(
         return "close"
 
     return "neutral"
+
+
+def _cover_reasons(
+    config: AtmosLogicConfig,
+    reading: AtmosLogicInput,
+    rain: bool,
+    strong_wind: bool,
+) -> list[str]:
+    reasons: list[str] = []
+    if not config.covers_enabled:
+        reasons.append("module_disabled")
+        return reasons
+    if rain:
+        reasons.append("rain_detected")
+    if strong_wind:
+        reasons.append("strong_wind_detected")
+    if _solar_available(reading):
+        reasons.append("solar_available")
+
+    delta = reading.indoor_temperature - reading.target_temperature
+    if delta > config.comfort_margin and reading.outdoor_temperature >= reading.indoor_temperature + 1:
+        reasons.append("outside_hotter_than_inside")
+    elif delta < -config.comfort_margin and _solar_available(reading):
+        reasons.append("warming_with_sunlight")
+    elif config.mode == MODE_WINTER and _solar_available(reading):
+        reasons.append("winter_sunlight")
+    elif config.mode == MODE_SUMMER and delta > config.comfort_margin:
+        reasons.append("summer_heat_protection")
+    else:
+        reasons.append("neutral_cover_strategy")
+
+    return reasons
 
 
 def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: bool, strong_wind: bool) -> tuple[int, list[dict[str, Any]]]:
@@ -235,6 +359,24 @@ def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: boo
     return score, components
 
 
+def _laundry_reasons(
+    reading: AtmosLogicInput,
+    rain: bool,
+    strong_wind: bool,
+    laundry_components: list[dict[str, Any]],
+) -> list[str]:
+    reasons = [str(component.get("reason")) for component in laundry_components if component.get("reason")]
+    if rain:
+        reasons.append("rain_detected")
+    if strong_wind:
+        reasons.append("strong_wind_detected")
+    if _is_night(reading):
+        reasons.append("nighttime")
+    if reading.weather_rain_forecast:
+        reasons.append("rain_forecast")
+    return list(dict.fromkeys(reasons))
+
+
 def _laundry_recommendation(score: int) -> str:
     if score >= 80:
         return "excellent"
@@ -252,12 +394,14 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
 
     rain = _rain_detected(config, reading)
     strong_wind = _is_strong_wind(reading, config.strong_wind_threshold)
+    confidence = _confidence(reading)
     thermal_score = _thermal_score(reading, config)
     home_mode = _home_mode(config, reading, rain, strong_wind)
     window_recommendation = _window_recommendation(config, reading, rain, strong_wind)
     cover_recommendation = _cover_recommendation(config, reading, rain, strong_wind)
     laundry_score, laundry_components = _laundry_score(config, reading, rain, strong_wind)
     laundry_recommendation = _laundry_recommendation(laundry_score)
+    laundry_reasons = _laundry_reasons(reading, rain, strong_wind, laundry_components)
 
     details: dict[str, Any] = {
         "config": {
@@ -278,6 +422,14 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "night": _is_night(reading),
             "rain_forecast": reading.weather_rain_forecast,
         },
+        "confidence": confidence,
+        "reasons": {
+            "home": _mode_reasons(config, reading, rain, strong_wind),
+            "room": _mode_reasons(config, reading, rain, strong_wind),
+            "window": _window_reasons(config, reading, rain, strong_wind),
+            "cover": _cover_reasons(config, reading, rain, strong_wind),
+            "laundry": laundry_reasons,
+        },
         "breakdown": {
             "thermal_score": thermal_score,
             "laundry_components": laundry_components,
@@ -287,6 +439,14 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "window_recommendation": window_recommendation,
             "cover_recommendation": cover_recommendation,
             "laundry_recommendation": laundry_recommendation,
+        },
+        "summary": {
+            "home_mode": home_mode,
+            "window_recommendation": window_recommendation,
+            "cover_recommendation": cover_recommendation,
+            "laundry_recommendation": laundry_recommendation,
+            "thermal_score": thermal_score,
+            "laundry_score": laundry_score,
         },
     }
 

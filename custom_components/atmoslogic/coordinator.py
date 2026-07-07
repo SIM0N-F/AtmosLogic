@@ -35,6 +35,7 @@ from .const import (
     CONF_NOTIFY_LAUNDRY_GOOD,
     CONF_NOTIFY_WINDOW_CLOSE,
     CONF_NOTIFY_WINDOW_OPEN,
+    CONF_BINARY_SENSORS_ENABLED,
     CONF_WEATHER_ENTITY,
     CONF_WINDOWS_ENABLED,
     CONF_WIND_GUST_ENTITY,
@@ -47,6 +48,7 @@ from .const import (
     DEFAULT_NOTIFY_LAUNDRY_GOOD,
     DEFAULT_NOTIFY_WINDOW_CLOSE,
     DEFAULT_NOTIFY_WINDOW_OPEN,
+    DEFAULT_BINARY_SENSORS_ENABLED,
     DEFAULT_HIGH_HUMIDITY_THRESHOLD,
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
@@ -129,6 +131,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             notify_cover_open=bool(merged.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN)),
             notify_cover_close=bool(merged.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE)),
             notify_laundry_good=bool(merged.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD)),
+            binary_sensors_enabled=bool(merged.get(CONF_BINARY_SENSORS_ENABLED, DEFAULT_BINARY_SENSORS_ENABLED)),
             room_configs=build_room_configs(self.hass, merged),
             indoor_humidity_entity=merged.get(CONF_INDOOR_HUMIDITY_ENTITY) or None,
             outdoor_humidity_entity=merged.get(CONF_OUTDOOR_HUMIDITY_ENTITY) or None,
@@ -237,6 +240,14 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
                 },
                 "inputs": {},
                 "signals": {},
+                "confidence": 0,
+                "reasons": {
+                    "home": ["missing_inputs"],
+                    "room": ["missing_inputs"],
+                    "window": ["missing_inputs"],
+                    "cover": ["missing_inputs"],
+                    "laundry": ["missing_inputs"],
+                },
                 "breakdown": {
                     "thermal_score": 0,
                     "laundry_components": [
@@ -252,6 +263,14 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
                     "window_recommendation": "neutral",
                     "cover_recommendation": "neutral",
                     "laundry_recommendation": "average",
+                },
+                "summary": {
+                    "home_mode": "comfort",
+                    "window_recommendation": "neutral",
+                    "cover_recommendation": "neutral",
+                    "laundry_recommendation": "average",
+                    "thermal_score": 0,
+                    "laundry_score": 50,
                 },
                 "missing_inputs": missing,
                 "data_valid": False,
@@ -331,6 +350,149 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         """Return the most recent room recommendations."""
 
         return self._room_recommendations
+
+    def room_summary(self, room_key: str) -> dict[str, Any] | None:
+        """Return a flattened attribute payload for a room sensor."""
+
+        room = next((room for room in self.config.room_configs if room.key == room_key), None)
+        recommendation = self._room_recommendations.get(room_key)
+        if room is None or recommendation is None:
+            return None
+
+        details = recommendation.details
+        return {
+            "area_id": room.area_id,
+            "name": room.name,
+            "mode": recommendation.home_mode,
+            "thermal_score": recommendation.thermal_score,
+            "window_recommendation": recommendation.window_recommendation,
+            "cover_recommendation": recommendation.cover_recommendation,
+            "open_windows_recommended": recommendation.open_windows_recommended,
+            "close_windows_recommended": recommendation.close_windows_recommended,
+            "open_covers_recommended": recommendation.open_covers_recommended,
+            "close_covers_recommended": recommendation.close_covers_recommended,
+            "confidence": details.get("confidence", 0),
+            "reasons": details.get("reasons", {}).get("room", []),
+            "indoor_temperature": details.get("inputs", {}).get("indoor_temperature"),
+            "outdoor_temperature": details.get("inputs", {}).get("outdoor_temperature"),
+            "target_temperature": details.get("inputs", {}).get("target_temperature"),
+        }
+
+    def laundry_summary(self) -> dict[str, Any]:
+        """Return a flattened attribute payload for the laundry sensor."""
+
+        recommendation = self.data
+        if recommendation is None:
+            return {}
+
+        details = recommendation.details
+        inputs = details.get("inputs", {})
+        signals = details.get("signals", {})
+        return {
+            "score": recommendation.laundry_score,
+            "drying_time_estimation": None,
+            "rain_risk": bool(signals.get("rain_detected") or signals.get("rain_forecast")),
+            "humidity": inputs.get("outdoor_humidity"),
+            "wind": inputs.get("wind_speed") or inputs.get("wind_gust"),
+            "temperature": inputs.get("outdoor_temperature"),
+            "reasons": details.get("reasons", {}).get("laundry", []),
+            "confidence": details.get("confidence", 0),
+        }
+
+    def home_summary(self) -> dict[str, Any]:
+        """Return a flattened attribute payload for the house sensor."""
+
+        recommendation = self.data
+        if recommendation is None:
+            return {}
+
+        rooms: list[dict[str, Any]] = []
+        for room in self.config.room_configs:
+            room_recommendation = self._room_recommendations.get(room.key)
+            if room_recommendation is None:
+                continue
+            room_summary = self.room_summary(room.key)
+            if room_summary is None:
+                continue
+            rooms.append(
+                {
+                    **room_summary,
+                    "next_action_recommended": self._room_next_action(room_recommendation),
+                }
+            )
+
+        global_score = self._global_score(rooms, recommendation)
+        priority_room = self._priority_room(rooms)
+        next_action = self._next_action(rooms)
+
+        return {
+            "room_count": len(self.config.room_configs),
+            "rooms": rooms,
+            "next_action_recommended": next_action,
+            "priority_room": priority_room.get("name") if priority_room else None,
+            "global_score": global_score,
+            "home_mode": recommendation.home_mode,
+            "thermal_score": recommendation.thermal_score,
+            "window_recommendation": recommendation.window_recommendation,
+            "cover_recommendation": recommendation.cover_recommendation,
+            "laundry_recommendation": recommendation.laundry_recommendation,
+            "laundry_score": recommendation.laundry_score,
+            "confidence": recommendation.details.get("confidence", 0),
+            "reasons": recommendation.details.get("reasons", {}).get("home", []),
+        }
+
+    @staticmethod
+    def _room_next_action(recommendation: AtmosLogicRecommendation) -> str:
+        if recommendation.close_windows_recommended:
+            return "close_windows"
+        if recommendation.open_windows_recommended:
+            return "open_windows"
+        if recommendation.close_covers_recommended:
+            return "close_covers"
+        if recommendation.open_covers_recommended:
+            return "open_covers"
+        if recommendation.good_for_laundry:
+            return "laundry"
+        return "none"
+
+    @classmethod
+    def _priority_room(cls, rooms: list[dict[str, Any]]) -> dict[str, Any] | None:
+        if not rooms:
+            return None
+        return max(
+            rooms,
+            key=lambda room: (
+                abs(float(room.get("thermal_score") or 0)),
+                room.get("confidence", 0),
+            ),
+        )
+
+    @classmethod
+    def _next_action(cls, rooms: list[dict[str, Any]]) -> str:
+        priority = {
+            "close_windows": 5,
+            "open_windows": 4,
+            "close_covers": 3,
+            "open_covers": 2,
+            "laundry": 1,
+            "none": 0,
+        }
+        best_action = "none"
+        best_rank = 0
+        for room in rooms:
+            next_action = str(room.get("next_action_recommended") or "none")
+            rank = priority.get(next_action, 0)
+            if rank > best_rank:
+                best_action = next_action
+                best_rank = rank
+        return best_action
+
+    @staticmethod
+    def _global_score(rooms: list[dict[str, Any]], recommendation: AtmosLogicRecommendation) -> int:
+        scores = [int(room.get("thermal_score") or 0) for room in rooms]
+        if not scores:
+            return int(recommendation.thermal_score)
+        return int(round(sum(scores) / len(scores)))
 
     def _build_input(self, config: AtmosLogicConfig, indoor_temperature_entity: str) -> AtmosLogicInput | None:
         indoor_temperature = self._read_numeric(indoor_temperature_entity)

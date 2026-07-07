@@ -14,6 +14,7 @@ from .const import (
     CONF_CLIMATE_ENTITY,
     CONF_COMFORT_MARGIN,
     CONF_COVERS_ENABLED,
+    CONF_BINARY_SENSORS_ENABLED,
     CONF_HIGH_HUMIDITY_THRESHOLD,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
@@ -41,6 +42,7 @@ from .const import (
     CONF_WIND_SPEED_ENTITY,
     DEFAULT_COMFORT_MARGIN,
     DEFAULT_COVERS_ENABLED,
+    DEFAULT_BINARY_SENSORS_ENABLED,
     DEFAULT_NOTIFICATIONS_ENABLED,
     DEFAULT_NOTIFY_COVER_CLOSE,
     DEFAULT_NOTIFY_COVER_OPEN,
@@ -194,6 +196,10 @@ def _build_core_schema(defaults: Mapping[str, object], *, include_room_areas: bo
                 CONF_NOTIFY_LAUNDRY_GOOD,
                 default=defaults.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD),
             ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_BINARY_SENSORS_ENABLED,
+                default=defaults.get(CONF_BINARY_SENSORS_ENABLED, DEFAULT_BINARY_SENSORS_ENABLED),
+            ): selector.BooleanSelector(),
         }
     if include_room_areas:
         schema[
@@ -340,30 +346,172 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if entry is None:
             return self.async_abort(reason="unknown_entry")
 
+        self._core_data = {**entry.data, **entry.options}
+        if user_input is not None:
+            return self.async_abort(reason="unexpected_input")
+
+        return self.async_show_menu(step_id="reconfigure", menu_options=["reconfigure_general", "reconfigure_rooms"])
+
+    async def async_step_reconfigure_general(self, user_input: dict[str, object] | None = None):
+        entry_id = self.context.get("entry_id")
+        entry = self.hass.config_entries.async_get_entry(entry_id) if entry_id is not None else None
+        if entry is None:
+            return self.async_abort(reason="unknown_entry")
+
         merged = {**entry.data, **entry.options}
-        room_defaults = _dedupe(
-            [room.area_id for room in build_room_configs(self.hass, merged) if not room.area_id.startswith("legacy_room_")]
-        )
-        schema_defaults = {**merged, CONF_ROOM_AREAS: room_defaults}
+        schema = _build_core_schema(merged, include_room_areas=False)
 
         if user_input is None:
             return self.async_show_form(
-                step_id="reconfigure",
-                data_schema=_build_core_schema(schema_defaults),
+                step_id="reconfigure_general",
+                data_schema=schema,
             )
 
         try:
-            data = _clean_core_data(_build_core_schema(schema_defaults)(_prepare_core_schema_input(user_input)))
+            data = _clean_core_data(schema(_prepare_core_schema_input(user_input)))
         except vol.Invalid:
             return self.async_show_form(
-                step_id="reconfigure",
-                data_schema=_build_core_schema(schema_defaults),
+                step_id="reconfigure_general",
+                data_schema=schema,
                 errors={"base": "invalid_input"},
             )
+
+        existing_room_configs = merged.get(CONF_ROOM_CONFIGS)
+        if isinstance(existing_room_configs, list):
+            data[CONF_ROOM_CONFIGS] = existing_room_configs
 
         self.hass.config_entries.async_update_entry(entry, options=data)
         await self.hass.config_entries.async_reload(entry.entry_id)
         return self.async_abort(reason="reconfigure_successful")
+
+    async def async_step_reconfigure_rooms(self, user_input: dict[str, object] | None = None):
+        entry_id = self.context.get("entry_id")
+        entry = self.hass.config_entries.async_get_entry(entry_id) if entry_id is not None else None
+        if entry is None:
+            return self.async_abort(reason="unknown_entry")
+
+        merged = {**entry.data, **entry.options}
+        current_rooms = build_room_configs(self.hass, merged)
+        current_area_ids = _dedupe(
+            [room.area_id for room in current_rooms if not room.area_id.startswith("legacy_room_")]
+        )
+        has_modern_room_configs = CONF_ROOM_CONFIGS in merged
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reconfigure_rooms",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_ROOM_AREAS,
+                            default=current_area_ids,
+                        ): _area_selector(),
+                    }
+                ),
+            )
+
+        try:
+            selected_area_ids = user_input.get(CONF_ROOM_AREAS, [])
+            if not isinstance(selected_area_ids, list):
+                raise vol.Invalid("room_areas must be a list")
+            self._selected_room_area_ids = _dedupe([str(area_id) for area_id in selected_area_ids if str(area_id).strip()])
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="reconfigure_rooms",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_ROOM_AREAS,
+                            default=current_area_ids,
+                        ): _area_selector(),
+                    }
+                ),
+                errors={"base": "invalid_input"},
+            )
+
+        self._room_configs = []
+        self._room_defaults_by_area_id = {
+            room.area_id: room.temperature_entity
+            for room in current_rooms
+            if not room.area_id.startswith("legacy_room_")
+        }
+
+        if not self._selected_room_area_ids:
+            data = dict(entry.options)
+            if has_modern_room_configs:
+                data[CONF_ROOM_CONFIGS] = []
+            self.hass.config_entries.async_update_entry(entry, options=data)
+            await self.hass.config_entries.async_reload(entry.entry_id)
+            return self.async_abort(reason="reconfigure_successful")
+
+        return await self.async_step_reconfigure_room(entry)
+
+    async def async_step_reconfigure_room(
+        self,
+        entry: config_entries.ConfigEntry,
+        user_input: dict[str, object] | None = None,
+    ):
+        if not self._selected_room_area_ids:
+            data = dict(entry.options)
+            if CONF_ROOM_CONFIGS in {**entry.data, **entry.options}:
+                data[CONF_ROOM_CONFIGS] = []
+            self.hass.config_entries.async_update_entry(entry, options=data)
+            await self.hass.config_entries.async_reload(entry.entry_id)
+            return self.async_abort(reason="reconfigure_successful")
+
+        if len(self._room_configs) >= len(self._selected_room_area_ids):
+            data = dict(entry.options)
+            if self._room_configs:
+                data[CONF_ROOM_CONFIGS] = list(self._room_configs)
+            self.hass.config_entries.async_update_entry(entry, options=data)
+            await self.hass.config_entries.async_reload(entry.entry_id)
+            return self.async_abort(reason="reconfigure_successful")
+
+        area_id = self._selected_room_area_ids[len(self._room_configs)]
+        area_name = self._area_name(area_id)
+        default_temperature_entity = self._area_temperature_default(area_id)
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_ROOM_TEMPERATURE_ENTITY,
+                    default=default_temperature_entity,
+                ): _entity_selector("sensor"),
+            }
+        )
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reconfigure_room",
+                data_schema=schema,
+                description_placeholders={"room_name": area_name},
+            )
+
+        try:
+            validated = schema(user_input)
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="reconfigure_room",
+                data_schema=schema,
+                errors={"base": "invalid_input"},
+                description_placeholders={"room_name": area_name},
+            )
+
+        self._room_configs.append(
+            {
+                "area_id": area_id,
+                "temperature_entity": str(validated[CONF_ROOM_TEMPERATURE_ENTITY]),
+            }
+        )
+
+        if len(self._room_configs) >= len(self._selected_room_area_ids):
+            data = dict(entry.options)
+            data[CONF_ROOM_CONFIGS] = list(self._room_configs)
+            self.hass.config_entries.async_update_entry(entry, options=data)
+            await self.hass.config_entries.async_reload(entry.entry_id)
+            return self.async_abort(reason="reconfigure_successful")
+
+        return await self.async_step_reconfigure_room(entry)
 
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):
         merged_defaults = dict(self._core_data)
@@ -541,7 +689,9 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
         if isinstance(existing_room_configs, list):
             self._core_data[CONF_ROOM_CONFIGS] = existing_room_configs
 
-        return self.async_create_entry(title="", data=self._core_data)
+        self.hass.config_entries.async_update_entry(entry, options=self._core_data)
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason="reconfigure_successful")
 
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):
         merged = self._merged()

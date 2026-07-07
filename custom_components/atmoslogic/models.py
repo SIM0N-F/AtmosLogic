@@ -46,6 +46,7 @@ class AtmosLogicConfig:
     notify_cover_open: bool = DEFAULT_NOTIFY_COVER_OPEN
     notify_cover_close: bool = DEFAULT_NOTIFY_COVER_CLOSE
     notify_laundry_good: bool = DEFAULT_NOTIFY_LAUNDRY_GOOD
+    binary_sensors_enabled: bool = False
     room_configs: tuple[AtmosLogicRoomConfig, ...] = ()
     indoor_humidity_entity: str | None = None
     outdoor_humidity_entity: str | None = None

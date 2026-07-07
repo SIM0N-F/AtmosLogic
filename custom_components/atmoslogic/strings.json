@@ -26,6 +26,7 @@
           "notify_cover_open": "Notify when covers should open",
           "notify_cover_close": "Notify when covers should close",
           "notify_laundry_good": "Notify when laundry conditions are good",
+          "binary_sensors_enabled": "Enable binary sensors",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
@@ -38,6 +39,24 @@
         "description": "Update the AtmosLogic configuration.",
         "data": {
           "room_areas": "Rooms to monitor"
+        }
+      },
+      "reconfigure_general": {
+        "title": "General",
+        "description": "Adjust thresholds and feature toggles."
+      },
+      "reconfigure_rooms": {
+        "title": "Rooms",
+        "description": "Add, remove, or edit the Home Assistant areas AtmosLogic should monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
+        "data": {
+          "room_areas": "Rooms to monitor"
+        }
+      },
+      "reconfigure_room": {
+        "title": "Temperature for {room_name}",
+        "description": "Link a temperature sensor for {room_name}.",
+        "data": {
+          "room_temperature_entity": "Temperature sensor"
         }
       },
       "rooms": {
@@ -83,6 +102,7 @@
           "notify_cover_open": "Notify when covers should open",
           "notify_cover_close": "Notify when covers should close",
           "notify_laundry_good": "Notify when laundry conditions are good",
+          "binary_sensors_enabled": "Enable binary sensors",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
@@ -114,6 +134,7 @@
           "notify_cover_open": "Notify when covers should open",
           "notify_cover_close": "Notify when covers should close",
           "notify_laundry_good": "Notify when laundry conditions are good",
+          "binary_sensors_enabled": "Enable binary sensors",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
@@ -123,6 +144,24 @@
       "reconfigure": {
         "title": "AtmosLogic options",
         "description": "Choose what you want to edit."
+      },
+      "reconfigure_general": {
+        "title": "General",
+        "description": "Adjust thresholds and feature toggles."
+      },
+      "reconfigure_rooms": {
+        "title": "Rooms",
+        "description": "Add, remove, or edit the Home Assistant areas AtmosLogic should monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
+        "data": {
+          "room_areas": "Rooms to monitor"
+        }
+      },
+      "reconfigure_room": {
+        "title": "Temperature for {room_name}",
+        "description": "Link a temperature sensor for {room_name}.",
+        "data": {
+          "room_temperature_entity": "Temperature sensor"
+        }
       },
       "rooms": {
         "title": "Rooms",
@@ -142,26 +181,11 @@
   },
   "entity": {
     "sensor": {
-      "rooms_summary": {
-        "name": "Rooms summary"
+      "home": {
+        "name": "Home"
       },
-      "home_mode": {
-        "name": "Home mode"
-      },
-      "window_recommendation": {
-        "name": "Window recommendation"
-      },
-      "cover_recommendation": {
-        "name": "Cover recommendation"
-      },
-      "laundry_score": {
-        "name": "Laundry score"
-      },
-      "laundry_recommendation": {
-        "name": "Laundry recommendation"
-      },
-      "thermal_score": {
-        "name": "Thermal score"
+      "laundry": {
+        "name": "Laundry"
       }
     },
     "binary_sensor": {

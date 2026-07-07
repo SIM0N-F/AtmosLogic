@@ -12,7 +12,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import AtmosLogicCoordinator
-from .rooms import AtmosLogicRoomConfig
 
 BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     BinarySensorEntityDescription(
@@ -47,13 +46,6 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
     ),
 )
 
-ROOM_BINARY_SENSOR_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = tuple(
-    description
-    for description in BINARY_SENSOR_DESCRIPTIONS
-    if description.key != "good_for_laundry"
-)
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: object,
@@ -62,15 +54,13 @@ async def async_setup_entry(
     """Set up the AtmosLogic binary sensors."""
 
     coordinator: AtmosLogicCoordinator = hass.data[DOMAIN][entry.entry_id]
+    if not coordinator.config.binary_sensors_enabled:
+        return
+
     async_add_entities(
         AtmosLogicBinarySensor(coordinator, description)
         for description in BINARY_SENSOR_DESCRIPTIONS
     )
-    for room in coordinator.config.room_configs:
-        async_add_entities(
-            AtmosLogicBinarySensor(coordinator, description, room)
-            for description in ROOM_BINARY_SENSOR_DESCRIPTIONS
-        )
 
 
 class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySensorEntity):
@@ -80,15 +70,12 @@ class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySen
         self,
         coordinator: AtmosLogicCoordinator,
         description: BinarySensorEntityDescription,
-        room: AtmosLogicRoomConfig | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._attr_entity_description = description
-        self._room = room
         self._attr_icon = description.icon
-        self._attr_name = f"AtmosLogic {room.name} {description.name}" if room is not None else f"AtmosLogic {description.name}"
-        room_suffix = f"_{room.key}" if room is not None else ""
-        self._attr_unique_id = f"{coordinator.config_entry.entry_id}{room_suffix}_{description.key}"
+        self._attr_name = f"AtmosLogic {description.name}"
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, coordinator.config_entry.entry_id)},
             "name": "AtmosLogic",
@@ -97,13 +84,11 @@ class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySen
 
     @property
     def available(self) -> bool:
-        if self._room is None:
-            return super().available and self.coordinator.data is not None
-        return super().available and self.coordinator.room_recommendations.get(self._room.key) is not None
+        return super().available and self.coordinator.data is not None
 
     @property
     def is_on(self) -> bool | None:
-        data = self.coordinator.data if self._room is None else self.coordinator.room_recommendations.get(self._room.key)
+        data = self.coordinator.data
         if data is None:
             return None
 
@@ -122,7 +107,7 @@ class AtmosLogicBinarySensor(CoordinatorEntity[AtmosLogicCoordinator], BinarySen
 
     @property
     def extra_state_attributes(self) -> dict[str, object] | None:
-        data = self.coordinator.data if self._room is None else self.coordinator.room_recommendations.get(self._room.key)
+        data = self.coordinator.data
         if data is None:
             return None
         return data.details

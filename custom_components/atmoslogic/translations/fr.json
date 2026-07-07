@@ -26,6 +26,7 @@
           "notify_cover_open": "Notifier quand il faut ouvrir les volets",
           "notify_cover_close": "Notifier quand il faut fermer les volets",
           "notify_laundry_good": "Notifier quand le linge peut etre etendu",
+          "binary_sensors_enabled": "Activer les capteurs binaires",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
@@ -38,6 +39,24 @@
         "description": "Met à jour la configuration AtmosLogic.",
         "data": {
           "room_areas": "Pièces à surveiller"
+        }
+      },
+      "reconfigure_general": {
+        "title": "Général",
+        "description": "Ajuste les seuils et les modules."
+      },
+      "reconfigure_rooms": {
+        "title": "Pièces",
+        "description": "Ajoute, retire ou modifie les zones Home Assistant qu'AtmosLogic doit surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
+        "data": {
+          "room_areas": "Pièces à surveiller"
+        }
+      },
+      "reconfigure_room": {
+        "title": "Température pour {room_name}",
+        "description": "Associe un capteur de température à {room_name}.",
+        "data": {
+          "room_temperature_entity": "Capteur de température"
         }
       },
       "rooms": {
@@ -83,6 +102,7 @@
           "notify_cover_open": "Notifier quand il faut ouvrir les volets",
           "notify_cover_close": "Notifier quand il faut fermer les volets",
           "notify_laundry_good": "Notifier quand le linge peut etre etendu",
+          "binary_sensors_enabled": "Activer les capteurs binaires",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
@@ -114,6 +134,7 @@
           "notify_cover_open": "Notifier quand il faut ouvrir les volets",
           "notify_cover_close": "Notifier quand il faut fermer les volets",
           "notify_laundry_good": "Notifier quand le linge peut etre etendu",
+          "binary_sensors_enabled": "Activer les capteurs binaires",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
@@ -123,6 +144,24 @@
       "reconfigure": {
         "title": "Options AtmosLogic",
         "description": "Choisis ce que tu veux modifier."
+      },
+      "reconfigure_general": {
+        "title": "Général",
+        "description": "Ajuste les seuils et les modules."
+      },
+      "reconfigure_rooms": {
+        "title": "Pièces",
+        "description": "Ajoute, retire ou modifie les zones Home Assistant qu'AtmosLogic doit surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
+        "data": {
+          "room_areas": "Pièces à surveiller"
+        }
+      },
+      "reconfigure_room": {
+        "title": "Température pour {room_name}",
+        "description": "Associe un capteur de température à {room_name}.",
+        "data": {
+          "room_temperature_entity": "Capteur de température"
+        }
       },
       "rooms": {
         "title": "Pièces",
@@ -142,26 +181,11 @@
   },
   "entity": {
     "sensor": {
-      "rooms_summary": {
-        "name": "Résumé des pièces"
+      "home": {
+        "name": "Maison"
       },
-      "home_mode": {
-        "name": "Mode maison"
-      },
-      "window_recommendation": {
-        "name": "Recommandation fenêtres"
-      },
-      "cover_recommendation": {
-        "name": "Recommandation volets"
-      },
-      "laundry_score": {
-        "name": "Score linge"
-      },
-      "laundry_recommendation": {
-        "name": "Recommandation linge"
-      },
-      "thermal_score": {
-        "name": "Score thermique"
+      "laundry": {
+        "name": "Linge"
       }
     },
     "binary_sensor": {

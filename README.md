@@ -9,7 +9,7 @@ AtmosLogic is a Home Assistant custom integration that turns indoor climate data
 - whether the home is in a comfortable, cooling, heating, or preserve mode
 - whether conditions are good for drying laundry outside
 
-This first version is intentionally advisory only. It does not control any equipment directly. Instead, it exposes `sensor` and `binary_sensor` entities that you can reuse in your own Home Assistant automations.
+This version is intentionally advisory only. It does not control any equipment directly. Instead, it exposes a small set of rich `sensor` entities that you can reuse in your own Home Assistant automations.
 
 ## Features
 
@@ -66,6 +66,7 @@ Optional tuning:
 - laundry module toggle
 - windows module toggle
 - covers module toggle
+- optional binary sensors toggle
 - notifications toggle
 - per-rule notification toggles for windows, covers, and laundry
 - optional Home Assistant rooms, discovered from your Areas and linked to the temperature sensor configured on each Area
@@ -80,23 +81,20 @@ You can also reconfigure the integration from the device page when Home Assistan
 
 ### Sensors
 
-- `sensor.atmoslogic_rooms_summary`
-- `sensor.atmoslogic_home_mode`
-- `sensor.atmoslogic_window_recommendation`
-- `sensor.atmoslogic_cover_recommendation`
-- `sensor.atmoslogic_laundry_score`
-- `sensor.atmoslogic_laundry_recommendation`
-- `sensor.atmoslogic_thermal_score`
+- `sensor.atmoslogic_home`
+- `sensor.atmoslogic_laundry`
+- one `sensor.atmoslogic_<area>` per configured Home Assistant Area
+  - each room sensor exposes the current mode plus detailed attributes
 
 ### Binary sensors
 
+- optional, disabled by default
 - `binary_sensor.atmoslogic_open_windows_recommended`
 - `binary_sensor.atmoslogic_close_windows_recommended`
 - `binary_sensor.atmoslogic_open_covers_recommended`
 - `binary_sensor.atmoslogic_close_covers_recommended`
 - `binary_sensor.atmoslogic_good_for_laundry`
   - these expose custom Material Design icons such as `mdi:window-open-variant`
-- room management is available from the configuration menu in a dedicated `Rooms` panel
 
 ## Notifications
 
@@ -119,7 +117,7 @@ For quick access from the device page, the notification toggles are also exposed
 
 Laundry recommendations also take into account nighttime and short-term rain forecasts when the data is available, so "good for laundry" is reserved for a real drying window.
 
-Room slots let you keep the main temperature sensor for the primary living area and add extra pieces such as kitchen or bedrooms without duplicating the whole integration.
+Room management lives in the dedicated `Rooms` panel in the integration options, where you can add or edit one temperature sensor per Home Assistant Area.
 
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
 

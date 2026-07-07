@@ -61,6 +61,8 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertGreaterEqual(recommendation.laundry_score, 80)
         self.assertEqual(recommendation.laundry_recommendation, "excellent")
         self.assertTrue(recommendation.good_for_laundry)
+        self.assertGreater(recommendation.details["confidence"], 0)
+        self.assertIn("indoor_temperature_above_target", recommendation.details["reasons"]["room"])
 
     def test_rain_and_strong_wind_close_everything(self) -> None:
         config = make_config()
@@ -119,6 +121,7 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertEqual(recommendation.laundry_recommendation, "poor")
         self.assertFalse(recommendation.good_for_laundry)
         self.assertTrue(recommendation.details["signals"]["night"])
+        self.assertIn("nighttime", recommendation.details["reasons"]["laundry"])
 
     def test_forecast_rain_discourages_laundry(self) -> None:
         config = make_config()
@@ -138,6 +141,7 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertEqual(recommendation.laundry_recommendation, "poor")
         self.assertFalse(recommendation.good_for_laundry)
         self.assertTrue(recommendation.details["signals"]["rain_forecast"])
+        self.assertIn("rain_forecast", recommendation.details["reasons"]["laundry"])
 
     def test_heating_with_sunlight_opens_covers(self) -> None:
         config = make_config(mode="winter")
