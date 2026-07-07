@@ -151,3 +151,39 @@ def build_additional_room_configs(values: Mapping[str, Any]) -> tuple[AtmosLogic
     """Backward-compatible alias for older tests and callers."""
 
     return build_room_configs(None, values)
+
+
+def get_selected_area_ids(values: Mapping[str, Any]) -> tuple[str, ...]:
+    """Return the configured Home Assistant area ids."""
+
+    raw_room_areas = values.get("room_areas")
+    if isinstance(raw_room_areas, (list, tuple)):
+        area_ids = [str(area_id).strip() for area_id in raw_room_areas if str(area_id).strip()]
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for area_id in area_ids:
+            if area_id in seen:
+                continue
+            seen.add(area_id)
+            deduped.append(area_id)
+        return tuple(deduped)
+
+    raw_room_configs = values.get(CONF_ROOM_CONFIGS)
+    if isinstance(raw_room_configs, (list, tuple)):
+        area_ids: list[str] = []
+        for room_data in raw_room_configs:
+            if not isinstance(room_data, Mapping):
+                continue
+            area_id = str(room_data.get("area_id") or room_data.get("key") or "").strip()
+            if area_id:
+                area_ids.append(area_id)
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for area_id in area_ids:
+            if area_id in seen:
+                continue
+            seen.add(area_id)
+            deduped.append(area_id)
+        return tuple(deduped)
+
+    return ()

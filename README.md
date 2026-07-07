@@ -95,6 +95,7 @@ You can also reconfigure the integration from the device page when Home Assistan
 - `binary_sensor.atmoslogic_close_covers_recommended`
 - `binary_sensor.atmoslogic_good_for_laundry`
   - these expose custom Material Design icons such as `mdi:window-open-variant`
+- per-room temperature selectors appear on the device page as configuration entities, one per selected Home Assistant area
 
 ## Notifications
 
@@ -121,7 +122,7 @@ Room slots let you keep the main temperature sensor for the primary living area 
 
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
 
-Room recommendations follow the Areas configured in Home Assistant. For each selected area, AtmosLogic uses the temperature sensor configured on that Home Assistant Area.
+Room recommendations follow the Areas configured in Home Assistant. For each selected area, AtmosLogic exposes a temperature selector directly on the device page, and falls back to the Home Assistant Area temperature sensor when available.
 
 ## Export and Import
 
