@@ -33,6 +33,13 @@
           "room_areas": "Pièces à surveiller"
         }
       },
+      "reconfigure": {
+        "title": "AtmosLogic",
+        "description": "Met à jour la configuration AtmosLogic.",
+        "data": {
+          "room_areas": "Pièces à surveiller"
+        }
+      },
       "rooms": {
         "title": "Pièces",
         "description": "Sélectionne les zones Home Assistant à surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
@@ -80,6 +87,13 @@
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
           "covers_enabled": "Activer le module volets",
+          "room_areas": "Pièces à surveiller"
+        }
+      },
+      "reconfigure": {
+        "title": "Options AtmosLogic",
+        "description": "Met à jour les seuils, les modules et les pièces.",
+        "data": {
           "room_areas": "Pièces à surveiller"
         }
       },

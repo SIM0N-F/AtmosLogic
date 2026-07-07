@@ -73,6 +73,7 @@ Optional tuning:
 
 After the integration is created, you can reopen its options from **Settings > Devices & services > AtmosLogic > Configure** to adjust thresholds, notification toggles, and room links.
 The room selector is shown directly on the main setup page, so you do not need to go through a second step.
+You can also reconfigure the integration from the device page when Home Assistant exposes the reconfigure action for the device.
 
 ## Entities
 

@@ -33,6 +33,13 @@
           "room_areas": "Rooms to monitor"
         }
       },
+      "reconfigure": {
+        "title": "AtmosLogic",
+        "description": "Update the AtmosLogic configuration.",
+        "data": {
+          "room_areas": "Rooms to monitor"
+        }
+      },
       "rooms": {
         "title": "Rooms",
         "description": "Select the Home Assistant areas you want AtmosLogic to monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
@@ -80,6 +87,13 @@
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
           "covers_enabled": "Enable cover module",
+          "room_areas": "Rooms to monitor"
+        }
+      },
+      "reconfigure": {
+        "title": "AtmosLogic options",
+        "description": "Update thresholds, features, and room links.",
+        "data": {
           "room_areas": "Rooms to monitor"
         }
       },

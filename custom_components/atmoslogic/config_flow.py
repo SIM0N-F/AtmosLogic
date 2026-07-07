@@ -338,6 +338,39 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(self, user_input: dict[str, object] | None = None):
+        """Handle updates from the device page reconfigure flow."""
+
+        entry_id = self.context.get("entry_id")
+        entry = self.hass.config_entries.async_get_entry(entry_id) if entry_id is not None else None
+        if entry is None:
+            return self.async_abort(reason="unknown_entry")
+
+        merged = {**entry.data, **entry.options}
+        room_defaults = _dedupe(
+            [room.area_id for room in build_room_configs(self.hass, merged) if not room.area_id.startswith("legacy_room_")]
+        )
+        schema_defaults = {**merged, CONF_ROOM_AREAS: room_defaults}
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reconfigure",
+                data_schema=_build_core_schema(schema_defaults),
+            )
+
+        try:
+            data = _clean_core_data(_build_core_schema(schema_defaults)(_prepare_core_schema_input(user_input)))
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="reconfigure",
+                data_schema=_build_core_schema(schema_defaults),
+                errors={"base": "invalid_input"},
+            )
+
+        self.hass.config_entries.async_update_entry(entry, options=data)
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason="reconfigure_successful")
+
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):
         merged_defaults = dict(self._core_data)
         if user_input is None:
