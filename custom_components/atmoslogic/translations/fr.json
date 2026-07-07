@@ -29,13 +29,21 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets",
-          "room_1_name": "Nom pièce 1",
-          "room_1_temperature_entity": "Entité de température pièce 1",
-          "room_2_name": "Nom pièce 2",
-          "room_2_temperature_entity": "Entité de température pièce 2",
-          "room_3_name": "Nom pièce 3",
-          "room_3_temperature_entity": "Entité de température pièce 3"
+          "covers_enabled": "Activer le module volets"
+        }
+      },
+      "rooms": {
+        "title": "Pièces",
+        "description": "Sélectionne les zones Home Assistant à surveiller.",
+        "data": {
+          "room_areas": "Pièces à surveiller"
+        }
+      },
+      "room": {
+        "title": "Température pour {room_name}",
+        "description": "Associe un capteur de température à {room_name}.",
+        "data": {
+          "room_temperature_entity": "Capteur de température"
         }
       }
     }
@@ -70,13 +78,21 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets",
-          "room_1_name": "Nom pièce 1",
-          "room_1_temperature_entity": "Entité de température pièce 1",
-          "room_2_name": "Nom pièce 2",
-          "room_2_temperature_entity": "Entité de température pièce 2",
-          "room_3_name": "Nom pièce 3",
-          "room_3_temperature_entity": "Entité de température pièce 3"
+          "covers_enabled": "Activer le module volets"
+        }
+      },
+      "rooms": {
+        "title": "Pièces",
+        "description": "Sélectionne les zones Home Assistant à surveiller.",
+        "data": {
+          "room_areas": "Pièces à surveiller"
+        }
+      },
+      "room": {
+        "title": "Température pour {room_name}",
+        "description": "Associe un capteur de température à {room_name}.",
+        "data": {
+          "room_temperature_entity": "Capteur de température"
         }
       }
     }

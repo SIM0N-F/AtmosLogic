@@ -60,7 +60,7 @@ from .const import (
 from .models import AtmosLogicConfig, AtmosLogicInput, AtmosLogicRecommendation
 from .notification_rules import build_notification_batch
 from .recommendation_engine import compute_recommendation
-from .rooms import build_additional_room_configs
+from .rooms import build_room_configs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -129,7 +129,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             notify_cover_open=bool(merged.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN)),
             notify_cover_close=bool(merged.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE)),
             notify_laundry_good=bool(merged.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD)),
-            room_configs=build_additional_room_configs(merged),
+            room_configs=build_room_configs(self.hass, merged),
             indoor_humidity_entity=merged.get(CONF_INDOOR_HUMIDITY_ENTITY) or None,
             outdoor_humidity_entity=merged.get(CONF_OUTDOOR_HUMIDITY_ENTITY) or None,
             rain_entity=merged.get(CONF_RAIN_ENTITY) or None,

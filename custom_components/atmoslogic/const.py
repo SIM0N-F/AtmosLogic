@@ -42,6 +42,11 @@ CONF_MODE = "mode"
 CONF_LAUNDRY_ENABLED = "laundry_enabled"
 CONF_WINDOWS_ENABLED = "windows_enabled"
 CONF_COVERS_ENABLED = "covers_enabled"
+CONF_ROOM_CONFIGS = "room_configs"
+CONF_ROOM_AREAS = "room_areas"
+CONF_ROOM_TEMPERATURE_ENTITY = "room_temperature_entity"
+
+# Legacy manual room slots kept for backward compatibility with older entries.
 CONF_ROOM_1_NAME = "room_1_name"
 CONF_ROOM_1_TEMPERATURE_ENTITY = "room_1_temperature_entity"
 CONF_ROOM_2_NAME = "room_2_name"

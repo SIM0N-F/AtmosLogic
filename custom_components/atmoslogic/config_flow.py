@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import area_registry, selector
 
 from .const import (
     CONF_CLIMATE_ENTITY,
@@ -22,6 +24,9 @@ from .const import (
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_RAIN_ENTITY,
     CONF_RAIN_THRESHOLD,
+    CONF_ROOM_AREAS,
+    CONF_ROOM_CONFIGS,
+    CONF_ROOM_TEMPERATURE_ENTITY,
     CONF_SOLAR_ENTITY,
     CONF_STRONG_WIND_THRESHOLD,
     CONF_TARGET_TEMPERATURE,
@@ -51,14 +56,26 @@ from .const import (
     DEFAULT_WINDOWS_ENABLED,
     DOMAIN,
     MODES,
-    ROOM_SLOT_DEFINITIONS,
+    CONF_ROOM_1_NAME,
+    CONF_ROOM_1_TEMPERATURE_ENTITY,
+    CONF_ROOM_2_NAME,
+    CONF_ROOM_2_TEMPERATURE_ENTITY,
+    CONF_ROOM_3_NAME,
+    CONF_ROOM_3_TEMPERATURE_ENTITY,
 )
+from .rooms import build_room_configs
 
 
 def _entity_selector(domain: str) -> selector.EntitySelector:
     """Return a simple entity selector for a specific domain."""
 
     return selector.EntitySelector(selector.EntitySelectorConfig(domain=domain))
+
+
+def _area_selector() -> selector.AreaSelector:
+    """Return a selector for Home Assistant areas."""
+
+    return selector.AreaSelector(selector.AreaSelectorConfig(multiple=True, reorder=True))
 
 
 def _number_selector(minimum: float, maximum: float, step: float) -> selector.NumberSelector:
@@ -74,8 +91,8 @@ def _number_selector(minimum: float, maximum: float, step: float) -> selector.Nu
     )
 
 
-def _build_schema(defaults: dict[str, object]) -> vol.Schema:
-    """Build the config form schema."""
+def _build_core_schema(defaults: Mapping[str, object]) -> vol.Schema:
+    """Build the core config form schema."""
 
     return vol.Schema(
         {
@@ -154,14 +171,6 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
                 CONF_COVERS_ENABLED,
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
             ): selector.BooleanSelector(),
-            **{
-                vol.Optional(name_key, default=defaults.get(name_key) or ""): str
-                for _slot, name_key, _entity_key in ROOM_SLOT_DEFINITIONS
-            },
-            **{
-                vol.Optional(entity_key, default=defaults.get(entity_key)): _entity_selector("sensor")
-                for _slot, _name_key, entity_key in ROOM_SLOT_DEFINITIONS
-            },
             vol.Optional(
                 CONF_NOTIFICATIONS_ENABLED,
                 default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
@@ -190,11 +199,11 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
     )
 
 
-def _prepare_schema_input(user_input: dict[str, object]) -> dict[str, object]:
+def _prepare_core_schema_input(user_input: dict[str, object]) -> dict[str, object]:
     """Normalize optional values for schema validation."""
 
     prepared = dict(user_input)
-    prepared.pop("notification_service", None)
+    prepared.pop(CONF_ROOM_CONFIGS, None)
     for key in (
         CONF_INDOOR_HUMIDITY_ENTITY,
         CONF_OUTDOOR_HUMIDITY_ENTITY,
@@ -204,18 +213,17 @@ def _prepare_schema_input(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
-        *[entity_key for _slot, _name_key, entity_key in ROOM_SLOT_DEFINITIONS],
     ):
         if prepared.get(key) is None:
             prepared[key] = ""
     return prepared
 
 
-def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
+def _clean_core_data(user_input: dict[str, object]) -> dict[str, object]:
     """Normalize empty optional entity ids to None."""
 
     cleaned = dict(user_input)
-    cleaned.pop("notification_service", None)
+    cleaned.pop(CONF_ROOM_CONFIGS, None)
     for key in (
         CONF_INDOOR_HUMIDITY_ENTITY,
         CONF_OUTDOOR_HUMIDITY_ENTITY,
@@ -225,11 +233,50 @@ def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
-        *[entity_key for _slot, _name_key, entity_key in ROOM_SLOT_DEFINITIONS],
     ):
         if cleaned.get(key) == "":
             cleaned[key] = None
     return cleaned
+
+
+def _room_config_defaults(merged: Mapping[str, object]) -> list[dict[str, str]]:
+    """Return the room configs already stored in the entry."""
+
+    room_configs = merged.get(CONF_ROOM_CONFIGS)
+    if not isinstance(room_configs, list):
+        return []
+
+    defaults: list[dict[str, str]] = []
+    for room in room_configs:
+        if not isinstance(room, Mapping):
+            continue
+
+        area_id = str(room.get("area_id") or "").strip()
+        temperature_entity = str(room.get("temperature_entity") or "").strip()
+        if not area_id:
+            continue
+
+        defaults.append(
+            {
+                "area_id": area_id,
+                "temperature_entity": temperature_entity,
+            }
+        )
+
+    return defaults
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    """Deduplicate a list while preserving order."""
+
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
+    return deduped
 
 
 class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -237,29 +284,175 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        self._core_data: dict[str, object] = {}
+        self._selected_room_area_ids: list[str] = []
+        self._room_configs: list[dict[str, str]] = []
+        self._room_defaults_by_area_id: dict[str, str] = {}
+
+    def _area_name(self, area_id: str) -> str:
+        registry = area_registry.async_get(self.hass)
+        area = registry.async_get_area(area_id)
+        if area is not None and area.name:
+            return area.name
+        return area_id
+
+    def _area_temperature_default(self, area_id: str) -> str | None:
+        if area_id in self._room_defaults_by_area_id:
+            return self._room_defaults_by_area_id[area_id] or None
+
+        registry = area_registry.async_get(self.hass)
+        area = registry.async_get_area(area_id)
+        if area is None or not area.temperature_entity_id:
+            return None
+        return area.temperature_entity_id
+
     async def async_step_user(self, user_input: dict[str, object] | None = None):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                data = _clean_data(_build_schema({})(_prepare_schema_input(user_input)))
+                data = _clean_core_data(_build_core_schema({})(_prepare_core_schema_input(user_input)))
             except vol.Invalid:
                 errors["base"] = "invalid_input"
             else:
-                return self.async_create_entry(title="AtmosLogic", data=data)
+                self._core_data = data
+                self._room_defaults_by_area_id = {}
+                return await self.async_step_rooms()
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_build_schema({}),
+            data_schema=_build_core_schema({}),
             errors=errors,
         )
+
+    async def async_step_rooms(self, user_input: dict[str, object] | None = None):
+        merged_defaults = dict(self._core_data)
+        if user_input is None:
+            return self.async_show_form(
+                step_id="rooms",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_ROOM_AREAS,
+                            default=_dedupe([room["area_id"] for room in _room_config_defaults(merged_defaults)]),
+                        ): _area_selector(),
+                    }
+                ),
+            )
+
+        try:
+            selected_area_ids = user_input.get(CONF_ROOM_AREAS, [])
+            if not isinstance(selected_area_ids, list):
+                raise vol.Invalid("room_areas must be a list")
+            self._selected_room_area_ids = _dedupe([str(area_id) for area_id in selected_area_ids if str(area_id).strip()])
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="rooms",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_ROOM_AREAS,
+                            default=_dedupe([room["area_id"] for room in _room_config_defaults(merged_defaults)]),
+                        ): _area_selector(),
+                    }
+                ),
+                errors={"base": "invalid_input"},
+            )
+
+        self._room_configs = []
+        self._room_defaults_by_area_id = {
+            room["area_id"]: room["temperature_entity"]
+            for room in _room_config_defaults(merged_defaults)
+            if room.get("area_id")
+        }
+
+        if not self._selected_room_area_ids:
+            return self._async_create_entry()
+
+        return await self.async_step_room()
+
+    async def async_step_room(self, user_input: dict[str, object] | None = None):
+        if not self._selected_room_area_ids:
+            return self._async_create_entry()
+
+        if len(self._room_configs) >= len(self._selected_room_area_ids):
+            return self._async_create_entry()
+
+        area_id = self._selected_room_area_ids[len(self._room_configs)]
+        area_name = self._area_name(area_id)
+        default_temperature_entity = self._area_temperature_default(area_id)
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_ROOM_TEMPERATURE_ENTITY,
+                    default=default_temperature_entity,
+                ): _entity_selector("sensor"),
+            }
+        )
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="room",
+                data_schema=schema,
+                description_placeholders={"room_name": area_name},
+            )
+
+        try:
+            validated = schema(user_input)
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="room",
+                data_schema=schema,
+                errors={"base": "invalid_input"},
+                description_placeholders={"room_name": area_name},
+            )
+
+        self._room_configs.append(
+            {
+                "area_id": area_id,
+                "temperature_entity": str(validated[CONF_ROOM_TEMPERATURE_ENTITY]),
+            }
+        )
+
+        if len(self._room_configs) >= len(self._selected_room_area_ids):
+            return self._async_create_entry()
+
+        return await self.async_step_room()
+
+    def _async_create_entry(self):
+        data = dict(self._core_data)
+        data[CONF_ROOM_CONFIGS] = list(self._room_configs)
+
+        title = str(self.context.get("title") or "AtmosLogic")
+        return self.async_create_entry(title=title, data=data)
 
     async def async_step_import(self, user_input: dict[str, object]) -> config_entries.ConfigFlowResult:
         """Import an AtmosLogic configuration payload."""
 
+        room_configs = user_input.get(CONF_ROOM_CONFIGS)
+        legacy_room_keys = (
+            CONF_ROOM_1_NAME,
+            CONF_ROOM_1_TEMPERATURE_ENTITY,
+            CONF_ROOM_2_NAME,
+            CONF_ROOM_2_TEMPERATURE_ENTITY,
+            CONF_ROOM_3_NAME,
+            CONF_ROOM_3_TEMPERATURE_ENTITY,
+        )
+        legacy_room_data = {key: user_input[key] for key in legacy_room_keys if key in user_input}
+        core_input = dict(user_input)
+        core_input.pop(CONF_ROOM_CONFIGS, None)
+        for key in legacy_room_keys:
+            core_input.pop(key, None)
+
         try:
-            data = _clean_data(_build_schema({})(_prepare_schema_input(user_input)))
+            data = _clean_core_data(_build_core_schema({})(_prepare_core_schema_input(core_input)))
         except vol.Invalid:
             return self.async_abort(reason="invalid_input")
+
+        if isinstance(room_configs, list):
+            data[CONF_ROOM_CONFIGS] = room_configs
+        data.update(legacy_room_data)
 
         title = str(self.context.get("title") or "AtmosLogic")
         return self.async_create_entry(title=title, data=data)
@@ -270,24 +463,164 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
+        self._core_data: dict[str, object] = {}
+        self._selected_room_area_ids: list[str] = []
+        self._room_configs: list[dict[str, str]] = []
+        self._room_defaults_by_area_id: dict[str, str] = {}
+
+    def _merged(self) -> dict[str, object]:
+        return {**self.config_entry.data, **self.config_entry.options, **self._core_data}
 
     async def async_step_init(self, user_input: dict[str, object] | None = None):
+        merged = {**self.config_entry.data, **self.config_entry.options}
         if user_input is not None:
             try:
-                data = _clean_data(_build_schema({**self.config_entry.data, **self.config_entry.options})(user_input))
+                self._core_data = _clean_core_data(_build_core_schema(merged)(_prepare_core_schema_input(user_input)))
             except vol.Invalid:
                 return self.async_show_form(
                     step_id="init",
-                    data_schema=_build_schema({**self.config_entry.data, **self.config_entry.options}),
+                    data_schema=_build_core_schema(merged),
                     errors={"base": "invalid_input"},
                 )
-            return self.async_create_entry(title="", data=data)
+            self._room_defaults_by_area_id = {
+                room.area_id: room.temperature_entity
+                for room in build_room_configs(self.hass, merged)
+            }
+            return await self.async_step_rooms()
 
-        merged = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
             step_id="init",
-            data_schema=_build_schema(merged),
+            data_schema=_build_core_schema(merged),
         )
+
+    async def async_step_rooms(self, user_input: dict[str, object] | None = None):
+        merged = self._merged()
+        current_rooms = build_room_configs(self.hass, merged)
+        current_area_ids = _dedupe(
+            [room.area_id for room in current_rooms if not room.area_id.startswith("legacy_room_")]
+        )
+        has_modern_room_configs = CONF_ROOM_CONFIGS in merged
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="rooms",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_ROOM_AREAS,
+                            default=current_area_ids,
+                        ): _area_selector(),
+                    }
+                ),
+            )
+
+        try:
+            selected_area_ids = user_input.get(CONF_ROOM_AREAS, [])
+            if not isinstance(selected_area_ids, list):
+                raise vol.Invalid("room_areas must be a list")
+            self._selected_room_area_ids = _dedupe([str(area_id) for area_id in selected_area_ids if str(area_id).strip()])
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="rooms",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_ROOM_AREAS,
+                            default=current_area_ids,
+                        ): _area_selector(),
+                    }
+                ),
+                errors={"base": "invalid_input"},
+            )
+
+        self._room_configs = []
+        self._room_defaults_by_area_id = {
+            room.area_id: room.temperature_entity
+            for room in current_rooms
+            if not room.area_id.startswith("legacy_room_")
+        }
+
+        if not self._selected_room_area_ids:
+            data = dict(self._core_data)
+            if has_modern_room_configs:
+                data[CONF_ROOM_CONFIGS] = []
+            return self.async_create_entry(title="", data=data)
+
+        return await self.async_step_room()
+
+    async def async_step_room(self, user_input: dict[str, object] | None = None):
+        if not self._selected_room_area_ids:
+            data = dict(self._core_data)
+            if CONF_ROOM_CONFIGS in self._merged():
+                data[CONF_ROOM_CONFIGS] = []
+            return self.async_create_entry(title="", data=data)
+
+        if len(self._room_configs) >= len(self._selected_room_area_ids):
+            data = dict(self._core_data)
+            data[CONF_ROOM_CONFIGS] = list(self._room_configs)
+            return self.async_create_entry(title="", data=data)
+
+        area_id = self._selected_room_area_ids[len(self._room_configs)]
+        area_name = self._area_name(area_id)
+        default_temperature_entity = self._area_temperature_default(area_id)
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_ROOM_TEMPERATURE_ENTITY,
+                    default=default_temperature_entity,
+                ): _entity_selector("sensor"),
+            }
+        )
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="room",
+                data_schema=schema,
+                description_placeholders={"room_name": area_name},
+            )
+
+        try:
+            validated = schema(user_input)
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="room",
+                data_schema=schema,
+                errors={"base": "invalid_input"},
+                description_placeholders={"room_name": area_name},
+            )
+
+        self._room_configs.append(
+            {
+                "area_id": area_id,
+                "temperature_entity": str(validated[CONF_ROOM_TEMPERATURE_ENTITY]),
+            }
+        )
+
+        if len(self._room_configs) >= len(self._selected_room_area_ids):
+            data = dict(self._core_data)
+            if self._room_configs:
+                data[CONF_ROOM_CONFIGS] = list(self._room_configs)
+            return self.async_create_entry(title="", data=data)
+
+        return await self.async_step_room()
+
+    def _area_name(self, area_id: str) -> str:
+        registry = area_registry.async_get(self.hass)
+        area = registry.async_get_area(area_id)
+        if area is not None and area.name:
+            return area.name
+        return area_id
+
+    def _area_temperature_default(self, area_id: str) -> str | None:
+        if area_id in self._room_defaults_by_area_id:
+            return self._room_defaults_by_area_id[area_id] or None
+
+        registry = area_registry.async_get(self.hass)
+        area = registry.async_get_area(area_id)
+        if area is None or not area.temperature_entity_id:
+            return None
+        return area.temperature_entity_id
 
 
 @callback

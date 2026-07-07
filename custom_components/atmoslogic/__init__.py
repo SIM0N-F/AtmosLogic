@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import voluptuous as vol
+try:
+    import voluptuous as vol
+except ModuleNotFoundError:  # pragma: no cover - test environment fallback
+    vol = Any  # type: ignore[assignment]
 
 try:
     from homeassistant.config_entries import ConfigEntry

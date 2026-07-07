@@ -3,42 +3,83 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
-from custom_components.atmoslogic.rooms import build_additional_room_configs
+from custom_components.atmoslogic.rooms import build_room_configs
+
+
+class FakeArea:
+    """Minimal area registry entry for tests."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.temperature_entity_id = None
+
+
+class FakeAreaRegistry:
+    """Minimal area registry for tests."""
+
+    def __init__(self, areas: dict[str, FakeArea]) -> None:
+        self._areas = areas
+
+    def async_get_area(self, area_id: str) -> FakeArea | None:
+        return self._areas.get(area_id)
 
 
 class RoomHelpersTest(unittest.TestCase):
     """Exercise room configuration parsing."""
 
-    def test_builds_only_configured_rooms(self) -> None:
-        rooms = build_additional_room_configs(
+    def test_builds_rooms_from_home_assistant_areas(self) -> None:
+        registry = FakeAreaRegistry(
+            {
+                "living_room": FakeArea("Salon"),
+                "bedroom": FakeArea("Chambre"),
+            }
+        )
+
+        with patch("custom_components.atmoslogic.rooms.area_registry.async_get", return_value=registry):
+            rooms = build_room_configs(
+                object(),
+                {
+                    "room_configs": [
+                        {
+                            "area_id": "living_room",
+                            "temperature_entity": "sensor.living_temperature",
+                        },
+                        {
+                            "area_id": "bedroom",
+                            "temperature_entity": "sensor.bedroom_temperature",
+                        },
+                    ]
+                },
+            )
+
+        self.assertEqual(len(rooms), 2)
+        self.assertEqual(rooms[0].area_id, "living_room")
+        self.assertEqual(rooms[0].name, "Salon")
+        self.assertEqual(rooms[0].temperature_entity, "sensor.living_temperature")
+        self.assertEqual(rooms[1].area_id, "bedroom")
+        self.assertEqual(rooms[1].name, "Chambre")
+        self.assertEqual(rooms[1].temperature_entity, "sensor.bedroom_temperature")
+
+    def test_falls_back_to_legacy_room_slots(self) -> None:
+        rooms = build_room_configs(
+            None,
             {
                 "room_1_name": "Cuisine",
                 "room_1_temperature_entity": "sensor.cuisine_temperature",
                 "room_2_name": "Chambre",
                 "room_2_temperature_entity": "sensor.chambre_temperature",
-                "room_3_name": "",
-                "room_3_temperature_entity": "",
-            }
+            },
         )
 
         self.assertEqual(len(rooms), 2)
-        self.assertEqual(rooms[0].key, "room_1")
+        self.assertEqual(rooms[0].area_id, "legacy_room_1")
         self.assertEqual(rooms[0].name, "Cuisine")
         self.assertEqual(rooms[0].temperature_entity, "sensor.cuisine_temperature")
-        self.assertEqual(rooms[1].key, "room_2")
+        self.assertEqual(rooms[1].area_id, "legacy_room_2")
         self.assertEqual(rooms[1].name, "Chambre")
         self.assertEqual(rooms[1].temperature_entity, "sensor.chambre_temperature")
-
-    def test_defaults_room_name_when_missing(self) -> None:
-        rooms = build_additional_room_configs(
-            {
-                "room_1_temperature_entity": "sensor.salon_temperature",
-            }
-        )
-
-        self.assertEqual(len(rooms), 1)
-        self.assertEqual(rooms[0].name, "Room 1")
 
 
 if __name__ == "__main__":

@@ -68,10 +68,10 @@ Optional tuning:
 - covers module toggle
 - notifications toggle
 - per-rule notification toggles for windows, covers, and laundry
-- up to three optional room temperature slots for per-room recommendations
+- optional Home Assistant rooms, discovered from your Areas and linked to temperature sensors
 - export/import services for backup and restore
 
-After the integration is created, you can reopen its options from **Settings > Devices & services > AtmosLogic > Configure** to adjust thresholds and notification toggles.
+After the integration is created, you can reopen its options from **Settings > Devices & services > AtmosLogic > Configure** to adjust thresholds, notification toggles, and room links.
 
 ## Entities
 
@@ -117,6 +117,8 @@ Laundry recommendations also take into account nighttime and short-term rain for
 Room slots let you keep the main temperature sensor for the primary living area and add extra pieces such as kitchen or bedrooms without duplicating the whole integration.
 
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
+
+Room recommendations follow the Areas configured in Home Assistant. For each selected area, AtmosLogic uses the temperature sensor you link in the integration flow, or the area temperature sensor configured in Home Assistant when available.
 
 ## Export and Import
 
