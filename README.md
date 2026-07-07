@@ -117,7 +117,7 @@ Notifications are sent only when a recommendation changes from inactive to activ
 
 If the standard `notify.notify` service is not available, AtmosLogic falls back to a persistent notification so you still see the alert inside Home Assistant.
 
-For quick access from the device page, the notification toggles are also exposed as config switches inside the AtmosLogic device.
+For quick access from the device page, the notification settings are available in a dedicated Notifications panel and as config switches inside the AtmosLogic device.
 
 Laundry recommendations also take into account nighttime and short-term rain forecasts when the data is available, so "good for laundry" is reserved for a real drying window.
 

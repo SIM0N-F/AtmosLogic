@@ -20,12 +20,6 @@
           "strong_wind_threshold": "Seuil de vent fort",
           "high_humidity_threshold": "Seuil d'humidité élevée",
           "rain_threshold": "Seuil de pluie",
-          "notifications_enabled": "Activer les notifications",
-          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
-          "notify_window_close": "Notifier quand il faut fermer les fenetres",
-          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
-          "notify_cover_close": "Notifier quand il faut fermer les volets",
-          "notify_laundry_good": "Notifier quand le linge peut etre etendu",
           "binary_sensors_enabled": "Activer les capteurs binaires",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
@@ -44,6 +38,10 @@
       "reconfigure_general": {
         "title": "Général",
         "description": "Ajuste les seuils et les modules."
+      },
+      "reconfigure_notifications": {
+        "title": "Notifications",
+        "description": "Configure les bascules de notification."
       },
       "reconfigure_rooms": {
         "title": "Pièces",
@@ -96,12 +94,6 @@
           "strong_wind_threshold": "Seuil de vent fort",
           "high_humidity_threshold": "Seuil d'humidité élevée",
           "rain_threshold": "Seuil de pluie",
-          "notifications_enabled": "Activer les notifications",
-          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
-          "notify_window_close": "Notifier quand il faut fermer les fenetres",
-          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
-          "notify_cover_close": "Notifier quand il faut fermer les volets",
-          "notify_laundry_good": "Notifier quand le linge peut etre etendu",
           "binary_sensors_enabled": "Activer les capteurs binaires",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
@@ -128,17 +120,23 @@
           "strong_wind_threshold": "Seuil de vent fort",
           "high_humidity_threshold": "Seuil d'humidité élevée",
           "rain_threshold": "Seuil de pluie",
-          "notifications_enabled": "Activer les notifications",
-          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
-          "notify_window_close": "Notifier quand il faut fermer les fenetres",
-          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
-          "notify_cover_close": "Notifier quand il faut fermer les volets",
-          "notify_laundry_good": "Notifier quand le linge peut etre etendu",
           "binary_sensors_enabled": "Activer les capteurs binaires",
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
           "covers_enabled": "Activer le module volets"
+        }
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Configure les bascules de notification.",
+        "data": {
+          "notifications_enabled": "Activer les notifications",
+          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
+          "notify_window_close": "Notifier quand il faut fermer les fenetres",
+          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
+          "notify_cover_close": "Notifier quand il faut fermer les volets",
+          "notify_laundry_good": "Notifier quand le linge peut etre etendu"
         }
       },
       "reconfigure": {
@@ -148,6 +146,10 @@
       "reconfigure_general": {
         "title": "Général",
         "description": "Ajuste les seuils et les modules."
+      },
+      "reconfigure_notifications": {
+        "title": "Notifications",
+        "description": "Configure les bascules de notification."
       },
       "reconfigure_rooms": {
         "title": "Pièces",

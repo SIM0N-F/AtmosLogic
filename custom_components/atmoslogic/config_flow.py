@@ -93,8 +93,8 @@ def _number_selector(minimum: float, maximum: float, step: float) -> selector.Nu
     )
 
 
-def _build_core_schema(defaults: Mapping[str, object], *, include_room_areas: bool = True) -> vol.Schema:
-    """Build the core config form schema."""
+def _build_general_schema(defaults: Mapping[str, object], *, include_room_areas: bool = True) -> vol.Schema:
+    """Build the general config form schema."""
 
     schema: dict[vol.Marker, object] = {
             vol.Required(
@@ -173,30 +173,6 @@ def _build_core_schema(defaults: Mapping[str, object], *, include_room_areas: bo
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
             ): selector.BooleanSelector(),
             vol.Optional(
-                CONF_NOTIFICATIONS_ENABLED,
-                default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                CONF_NOTIFY_WINDOW_OPEN,
-                default=defaults.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                CONF_NOTIFY_WINDOW_CLOSE,
-                default=defaults.get(CONF_NOTIFY_WINDOW_CLOSE, DEFAULT_NOTIFY_WINDOW_CLOSE),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                CONF_NOTIFY_COVER_OPEN,
-                default=defaults.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                CONF_NOTIFY_COVER_CLOSE,
-                default=defaults.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                CONF_NOTIFY_LAUNDRY_GOOD,
-                default=defaults.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD),
-            ): selector.BooleanSelector(),
-            vol.Optional(
                 CONF_BINARY_SENSORS_ENABLED,
                 default=defaults.get(CONF_BINARY_SENSORS_ENABLED, DEFAULT_BINARY_SENSORS_ENABLED),
             ): selector.BooleanSelector(),
@@ -210,6 +186,47 @@ def _build_core_schema(defaults: Mapping[str, object], *, include_room_areas: bo
         ] = _area_selector()
 
     return vol.Schema(schema)
+
+
+def _build_notification_schema(defaults: Mapping[str, object]) -> vol.Schema:
+    """Build the notification config form schema."""
+
+    schema: dict[vol.Marker, object] = {
+        vol.Optional(
+            CONF_NOTIFICATIONS_ENABLED,
+            default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_WINDOW_OPEN,
+            default=defaults.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_WINDOW_CLOSE,
+            default=defaults.get(CONF_NOTIFY_WINDOW_CLOSE, DEFAULT_NOTIFY_WINDOW_CLOSE),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_COVER_OPEN,
+            default=defaults.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_COVER_CLOSE,
+            default=defaults.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_LAUNDRY_GOOD,
+            default=defaults.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD),
+        ): selector.BooleanSelector(),
+    }
+
+    return vol.Schema(schema)
+
+
+def _build_core_schema(defaults: Mapping[str, object], *, include_room_areas: bool = True) -> vol.Schema:
+    """Build the full config form schema."""
+
+    general = dict(_build_general_schema(defaults, include_room_areas=include_room_areas).schema)
+    notifications = dict(_build_notification_schema(defaults).schema)
+    return vol.Schema({**general, **notifications})
 
 
 def _prepare_core_schema_input(user_input: dict[str, object]) -> dict[str, object]:
@@ -355,7 +372,10 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return self.async_abort(reason="unexpected_input")
 
-        return self.async_show_menu(step_id="reconfigure", menu_options=["reconfigure_general", "reconfigure_rooms"])
+        return self.async_show_menu(
+            step_id="reconfigure",
+            menu_options=["reconfigure_general", "reconfigure_notifications", "reconfigure_rooms"],
+        )
 
     async def async_step_reconfigure_general(self, user_input: dict[str, object] | None = None):
         entry = self._reconfigure_entry()
@@ -363,7 +383,7 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="unknown_entry")
 
         merged = {**entry.data, **entry.options}
-        schema = _build_core_schema(merged, include_room_areas=False)
+        schema = _build_general_schema(merged, include_room_areas=False)
 
         if user_input is None:
             return self.async_show_form(
@@ -381,10 +401,43 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         existing_room_configs = merged.get(CONF_ROOM_CONFIGS)
+        updated_options = {**entry.options, **data}
         if isinstance(existing_room_configs, list):
-            data[CONF_ROOM_CONFIGS] = existing_room_configs
+            updated_options[CONF_ROOM_CONFIGS] = existing_room_configs
 
-        self.hass.config_entries.async_update_entry(entry, options=data)
+        self.hass.config_entries.async_update_entry(entry, options=updated_options)
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason="reconfigure_successful")
+
+    async def async_step_reconfigure_notifications(self, user_input: dict[str, object] | None = None):
+        entry = self._reconfigure_entry()
+        if entry is None:
+            return self.async_abort(reason="unknown_entry")
+
+        merged = {**entry.data, **entry.options}
+        schema = _build_notification_schema(merged)
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reconfigure_notifications",
+                data_schema=schema,
+            )
+
+        try:
+            data = schema(user_input)
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="reconfigure_notifications",
+                data_schema=schema,
+                errors={"base": "invalid_input"},
+            )
+
+        existing_room_configs = merged.get(CONF_ROOM_CONFIGS)
+        updated_options = {**entry.options, **data}
+        if isinstance(existing_room_configs, list):
+            updated_options[CONF_ROOM_CONFIGS] = existing_room_configs
+
+        self.hass.config_entries.async_update_entry(entry, options=updated_options)
         await self.hass.config_entries.async_reload(entry.entry_id)
         return self.async_abort(reason="reconfigure_successful")
 
@@ -667,11 +720,11 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_abort(reason="unexpected_input")
 
-        return self.async_show_menu(step_id="init", menu_options=["general", "rooms"])
+        return self.async_show_menu(step_id="init", menu_options=["general", "notifications", "rooms"])
 
     async def async_step_general(self, user_input: dict[str, object] | None = None):
         merged = self._merged()
-        schema = _build_core_schema(merged, include_room_areas=False)
+        schema = _build_general_schema(merged, include_room_areas=False)
 
         if user_input is None:
             return self.async_show_form(
@@ -680,10 +733,35 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
             )
 
         try:
-            self._core_data = _clean_core_data(schema(_prepare_core_schema_input(user_input)))
+            self._core_data = {**self._core_data, **_clean_core_data(schema(_prepare_core_schema_input(user_input)))}
         except vol.Invalid:
             return self.async_show_form(
                 step_id="general",
+                data_schema=schema,
+                errors={"base": "invalid_input"},
+            )
+
+        existing_room_configs = self._merged().get(CONF_ROOM_CONFIGS)
+        if isinstance(existing_room_configs, list):
+            self._core_data[CONF_ROOM_CONFIGS] = existing_room_configs
+
+        return self.async_create_entry(title="", data=self._core_data)
+
+    async def async_step_notifications(self, user_input: dict[str, object] | None = None):
+        merged = self._merged()
+        schema = _build_notification_schema(merged)
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="notifications",
+                data_schema=schema,
+            )
+
+        try:
+            self._core_data = {**self._core_data, **schema(user_input)}
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="notifications",
                 data_schema=schema,
                 errors={"base": "invalid_input"},
             )

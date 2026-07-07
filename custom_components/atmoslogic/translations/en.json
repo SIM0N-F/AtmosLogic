@@ -20,12 +20,6 @@
           "strong_wind_threshold": "Strong wind threshold",
           "high_humidity_threshold": "High humidity threshold",
           "rain_threshold": "Rain threshold",
-          "notifications_enabled": "Enable notifications",
-          "notify_window_open": "Notify when windows should open",
-          "notify_window_close": "Notify when windows should close",
-          "notify_cover_open": "Notify when covers should open",
-          "notify_cover_close": "Notify when covers should close",
-          "notify_laundry_good": "Notify when laundry conditions are good",
           "binary_sensors_enabled": "Enable binary sensors",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
@@ -44,6 +38,10 @@
       "reconfigure_general": {
         "title": "General",
         "description": "Adjust thresholds and feature toggles."
+      },
+      "reconfigure_notifications": {
+        "title": "Notifications",
+        "description": "Configure notification toggles."
       },
       "reconfigure_rooms": {
         "title": "Rooms",
@@ -96,12 +94,6 @@
           "strong_wind_threshold": "Strong wind threshold",
           "high_humidity_threshold": "High humidity threshold",
           "rain_threshold": "Rain threshold",
-          "notifications_enabled": "Enable notifications",
-          "notify_window_open": "Notify when windows should open",
-          "notify_window_close": "Notify when windows should close",
-          "notify_cover_open": "Notify when covers should open",
-          "notify_cover_close": "Notify when covers should close",
-          "notify_laundry_good": "Notify when laundry conditions are good",
           "binary_sensors_enabled": "Enable binary sensors",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
@@ -128,17 +120,23 @@
           "strong_wind_threshold": "Strong wind threshold",
           "high_humidity_threshold": "High humidity threshold",
           "rain_threshold": "Rain threshold",
-          "notifications_enabled": "Enable notifications",
-          "notify_window_open": "Notify when windows should open",
-          "notify_window_close": "Notify when windows should close",
-          "notify_cover_open": "Notify when covers should open",
-          "notify_cover_close": "Notify when covers should close",
-          "notify_laundry_good": "Notify when laundry conditions are good",
           "binary_sensors_enabled": "Enable binary sensors",
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
           "covers_enabled": "Enable cover module"
+        }
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Configure notification toggles.",
+        "data": {
+          "notifications_enabled": "Enable notifications",
+          "notify_window_open": "Notify when windows should open",
+          "notify_window_close": "Notify when windows should close",
+          "notify_cover_open": "Notify when covers should open",
+          "notify_cover_close": "Notify when covers should close",
+          "notify_laundry_good": "Notify when laundry conditions are good"
         }
       },
       "reconfigure": {
@@ -148,6 +146,10 @@
       "reconfigure_general": {
         "title": "General",
         "description": "Adjust thresholds and feature toggles."
+      },
+      "reconfigure_notifications": {
+        "title": "Notifications",
+        "description": "Configure notification toggles."
       },
       "reconfigure_rooms": {
         "title": "Rooms",
