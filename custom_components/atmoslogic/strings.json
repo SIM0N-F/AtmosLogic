@@ -60,6 +60,37 @@
     "step": {
       "init": {
         "title": "AtmosLogic options",
+        "description": "Choose what you want to edit.",
+        "data": {
+          "indoor_temperature_entity": "Indoor temperature entity",
+          "outdoor_temperature_entity": "Outdoor temperature entity",
+          "target_temperature": "Target temperature",
+          "indoor_humidity_entity": "Indoor humidity entity",
+          "outdoor_humidity_entity": "Outdoor humidity entity",
+          "rain_entity": "Rain entity",
+          "wind_speed_entity": "Average wind entity",
+          "wind_gust_entity": "Wind gust entity",
+          "solar_entity": "Brightness or solar radiation entity",
+          "climate_entity": "Climate entity",
+          "weather_entity": "Weather entity",
+          "comfort_margin": "Comfort margin",
+          "strong_wind_threshold": "Strong wind threshold",
+          "high_humidity_threshold": "High humidity threshold",
+          "rain_threshold": "Rain threshold",
+          "notifications_enabled": "Enable notifications",
+          "notify_window_open": "Notify when windows should open",
+          "notify_window_close": "Notify when windows should close",
+          "notify_cover_open": "Notify when covers should open",
+          "notify_cover_close": "Notify when covers should close",
+          "notify_laundry_good": "Notify when laundry conditions are good",
+          "mode": "Mode",
+          "laundry_enabled": "Enable laundry module",
+          "windows_enabled": "Enable window module",
+          "covers_enabled": "Enable cover module"
+        }
+      },
+      "general": {
+        "title": "General",
         "description": "Adjust thresholds and feature toggles.",
         "data": {
           "indoor_temperature_entity": "Indoor temperature entity",
@@ -86,20 +117,16 @@
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
-          "covers_enabled": "Enable cover module",
-          "room_areas": "Rooms to monitor"
+          "covers_enabled": "Enable cover module"
         }
       },
       "reconfigure": {
         "title": "AtmosLogic options",
-        "description": "Update thresholds, features, and room links.",
-        "data": {
-          "room_areas": "Rooms to monitor"
-        }
+        "description": "Choose what you want to edit."
       },
       "rooms": {
         "title": "Rooms",
-        "description": "Select the Home Assistant areas you want AtmosLogic to monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
+        "description": "Add, remove, or edit the Home Assistant areas AtmosLogic should monitor. If no area appears, first link a temperature sensor to that area in Home Assistant.",
         "data": {
           "room_areas": "Rooms to monitor"
         }

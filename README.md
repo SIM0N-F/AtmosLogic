@@ -71,8 +71,9 @@ Optional tuning:
 - optional Home Assistant rooms, discovered from your Areas and linked to the temperature sensor configured on each Area
 - export/import services for backup and restore
 
-After the integration is created, you can reopen its options from **Settings > Devices & services > AtmosLogic > Configure** to adjust thresholds, notification toggles, and room links.
-The room selector is shown directly on the main setup page, so you do not need to go through a second step.
+After the integration is created, you can reopen its options from **Settings > Devices & services > AtmosLogic > Configure** to adjust thresholds and feature toggles.
+The configuration dialog now starts with a small menu, so the room management panel is separate from the rest of the settings.
+You can add, remove, or edit monitored Areas from that dedicated Rooms panel, then link a temperature sensor for each one.
 You can also reconfigure the integration from the device page when Home Assistant exposes the reconfigure action for the device.
 
 ## Entities

@@ -91,11 +91,10 @@ def _number_selector(minimum: float, maximum: float, step: float) -> selector.Nu
     )
 
 
-def _build_core_schema(defaults: Mapping[str, object]) -> vol.Schema:
+def _build_core_schema(defaults: Mapping[str, object], *, include_room_areas: bool = True) -> vol.Schema:
     """Build the core config form schema."""
 
-    return vol.Schema(
-        {
+    schema: dict[vol.Marker, object] = {
             vol.Required(
                 CONF_INDOOR_TEMPERATURE_ENTITY,
                 default=defaults.get(CONF_INDOOR_TEMPERATURE_ENTITY),
@@ -172,10 +171,6 @@ def _build_core_schema(defaults: Mapping[str, object]) -> vol.Schema:
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
             ): selector.BooleanSelector(),
             vol.Optional(
-                CONF_ROOM_AREAS,
-                default=defaults.get(CONF_ROOM_AREAS, []),
-            ): _area_selector(),
-            vol.Optional(
                 CONF_NOTIFICATIONS_ENABLED,
                 default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
             ): selector.BooleanSelector(),
@@ -200,7 +195,15 @@ def _build_core_schema(defaults: Mapping[str, object]) -> vol.Schema:
                 default=defaults.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD),
             ): selector.BooleanSelector(),
         }
-    )
+    if include_room_areas:
+        schema[
+            vol.Optional(
+                CONF_ROOM_AREAS,
+                default=defaults.get(CONF_ROOM_AREAS, []),
+            )
+        ] = _area_selector()
+
+    return vol.Schema(schema)
 
 
 def _prepare_core_schema_input(user_input: dict[str, object]) -> dict[str, object]:
@@ -509,26 +512,36 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
         return {**self.config_entry.data, **self.config_entry.options, **self._core_data}
 
     async def async_step_init(self, user_input: dict[str, object] | None = None):
-        merged = {**self.config_entry.data, **self.config_entry.options}
-        room_defaults = _dedupe(
-            [room.area_id for room in build_room_configs(self.hass, merged) if not room.area_id.startswith("legacy_room_")]
-        )
-        schema_defaults = {**merged, CONF_ROOM_AREAS: room_defaults}
+        self._core_data = {**self.config_entry.data, **self.config_entry.options}
         if user_input is not None:
-            try:
-                self._core_data = _clean_core_data(_build_core_schema(merged)(_prepare_core_schema_input(user_input)))
-            except vol.Invalid:
-                return self.async_show_form(
-                    step_id="init",
-                    data_schema=_build_core_schema(schema_defaults),
-                    errors={"base": "invalid_input"},
-                )
-            return self.async_create_entry(title="", data=self._core_data)
+            return self.async_abort(reason="unexpected_input")
 
-        return self.async_show_form(
-            step_id="init",
-            data_schema=_build_core_schema(schema_defaults),
-        )
+        return self.async_show_menu(step_id="init", menu_options=["general", "rooms"])
+
+    async def async_step_general(self, user_input: dict[str, object] | None = None):
+        merged = self._merged()
+        schema = _build_core_schema(merged, include_room_areas=False)
+
+        if user_input is None:
+            return self.async_show_form(
+                step_id="general",
+                data_schema=schema,
+            )
+
+        try:
+            self._core_data = _clean_core_data(schema(_prepare_core_schema_input(user_input)))
+        except vol.Invalid:
+            return self.async_show_form(
+                step_id="general",
+                data_schema=schema,
+                errors={"base": "invalid_input"},
+            )
+
+        existing_room_configs = self._merged().get(CONF_ROOM_CONFIGS)
+        if isinstance(existing_room_configs, list):
+            self._core_data[CONF_ROOM_CONFIGS] = existing_room_configs
+
+        return self.async_create_entry(title="", data=self._core_data)
 
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):
         merged = self._merged()

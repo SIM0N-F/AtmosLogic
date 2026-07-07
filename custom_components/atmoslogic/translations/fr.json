@@ -60,6 +60,37 @@
     "step": {
       "init": {
         "title": "Options AtmosLogic",
+        "description": "Choisis ce que tu veux modifier.",
+        "data": {
+          "indoor_temperature_entity": "Entité de température intérieure",
+          "outdoor_temperature_entity": "Entité de température extérieure",
+          "target_temperature": "Température cible",
+          "indoor_humidity_entity": "Entité d'humidité intérieure",
+          "outdoor_humidity_entity": "Entité d'humidité extérieure",
+          "rain_entity": "Entité de pluie",
+          "wind_speed_entity": "Entité de vent moyen",
+          "wind_gust_entity": "Entité de rafales",
+          "solar_entity": "Entité de luminosité ou de rayonnement solaire",
+          "climate_entity": "Entité climate",
+          "weather_entity": "Entité météo",
+          "comfort_margin": "Marge de confort",
+          "strong_wind_threshold": "Seuil de vent fort",
+          "high_humidity_threshold": "Seuil d'humidité élevée",
+          "rain_threshold": "Seuil de pluie",
+          "notifications_enabled": "Activer les notifications",
+          "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
+          "notify_window_close": "Notifier quand il faut fermer les fenetres",
+          "notify_cover_open": "Notifier quand il faut ouvrir les volets",
+          "notify_cover_close": "Notifier quand il faut fermer les volets",
+          "notify_laundry_good": "Notifier quand le linge peut etre etendu",
+          "mode": "Mode",
+          "laundry_enabled": "Activer le module linge",
+          "windows_enabled": "Activer le module fenêtres",
+          "covers_enabled": "Activer le module volets"
+        }
+      },
+      "general": {
+        "title": "Général",
         "description": "Ajuste les seuils et les modules.",
         "data": {
           "indoor_temperature_entity": "Entité de température intérieure",
@@ -86,20 +117,16 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets",
-          "room_areas": "Pièces à surveiller"
+          "covers_enabled": "Activer le module volets"
         }
       },
       "reconfigure": {
         "title": "Options AtmosLogic",
-        "description": "Met à jour les seuils, les modules et les pièces.",
-        "data": {
-          "room_areas": "Pièces à surveiller"
-        }
+        "description": "Choisis ce que tu veux modifier."
       },
       "rooms": {
         "title": "Pièces",
-        "description": "Sélectionne les zones Home Assistant à surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
+        "description": "Ajoute, retire ou modifie les zones Home Assistant qu'AtmosLogic doit surveiller. Si aucune zone n'apparaît, commence par associer un capteur de température à cette zone dans Home Assistant.",
         "data": {
           "room_areas": "Pièces à surveiller"
         }
