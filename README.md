@@ -1,5 +1,9 @@
 # AtmosLogic
 
+<p align="center">
+  <img src="brand/logo.png" alt="AtmosLogic logo" width="420">
+</p>
+
 **Weather-Based Environmental Advisor for Home Assistant**
 
 AtmosLogic is a Home Assistant custom integration that turns indoor climate data, outdoor weather data, and a few user preferences into simple recommendations:
