@@ -172,6 +172,10 @@ def _build_core_schema(defaults: Mapping[str, object]) -> vol.Schema:
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
             ): selector.BooleanSelector(),
             vol.Optional(
+                CONF_ROOM_AREAS,
+                default=defaults.get(CONF_ROOM_AREAS, []),
+            ): _area_selector(),
+            vol.Optional(
                 CONF_NOTIFICATIONS_ENABLED,
                 default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
             ): selector.BooleanSelector(),
@@ -316,8 +320,8 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_input"
             else:
                 self._core_data = data
-                self._room_defaults_by_area_id = {}
-                return await self.async_step_rooms()
+                title = str(self.context.get("title") or "AtmosLogic")
+                return self.async_create_entry(title=title, data=data)
 
         return self.async_show_form(
             step_id="user",
@@ -473,24 +477,24 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, object] | None = None):
         merged = {**self.config_entry.data, **self.config_entry.options}
+        room_defaults = _dedupe(
+            [room.area_id for room in build_room_configs(self.hass, merged) if not room.area_id.startswith("legacy_room_")]
+        )
+        schema_defaults = {**merged, CONF_ROOM_AREAS: room_defaults}
         if user_input is not None:
             try:
                 self._core_data = _clean_core_data(_build_core_schema(merged)(_prepare_core_schema_input(user_input)))
             except vol.Invalid:
                 return self.async_show_form(
                     step_id="init",
-                    data_schema=_build_core_schema(merged),
+                    data_schema=_build_core_schema(schema_defaults),
                     errors={"base": "invalid_input"},
                 )
-            self._room_defaults_by_area_id = {
-                room.area_id: room.temperature_entity
-                for room in build_room_configs(self.hass, merged)
-            }
-            return await self.async_step_rooms()
+            return self.async_create_entry(title="", data=self._core_data)
 
         return self.async_show_form(
             step_id="init",
-            data_schema=_build_core_schema(merged),
+            data_schema=_build_core_schema(schema_defaults),
         )
 
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):

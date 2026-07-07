@@ -105,7 +105,7 @@ def build_room_configs(hass: HomeAssistant | None, values: Mapping[str, Any]) ->
     """Build room configurations from entry data or legacy slot fields."""
 
     raw_room_configs = values.get(CONF_ROOM_CONFIGS)
-    if isinstance(raw_room_configs, list):
+    if isinstance(raw_room_configs, (list, tuple)):
         rooms: list[AtmosLogicRoomConfig] = []
         for index, room_data in enumerate(raw_room_configs):
             if not isinstance(room_data, Mapping):
@@ -118,6 +118,29 @@ def build_room_configs(hass: HomeAssistant | None, values: Mapping[str, Any]) ->
             )
             if room is not None:
                 rooms.append(room)
+
+        return tuple(rooms)
+
+    raw_room_areas = values.get("room_areas")
+    if isinstance(raw_room_areas, (list, tuple)):
+        rooms: list[AtmosLogicRoomConfig] = []
+        registry = area_registry.async_get(hass) if hass is not None else None
+        for area_id_value in raw_room_areas:
+            area_id = str(area_id_value).strip()
+            if not area_id:
+                continue
+
+            area = registry.async_get_area(area_id) if registry is not None else None
+            if area is None or not area.temperature_entity_id:
+                continue
+
+            rooms.append(
+                AtmosLogicRoomConfig(
+                    area_id=area_id,
+                    name=area.name or area_id,
+                    temperature_entity=area.temperature_entity_id,
+                )
+            )
 
         return tuple(rooms)
 

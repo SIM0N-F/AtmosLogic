@@ -29,7 +29,8 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets"
+          "covers_enabled": "Activer le module volets",
+          "room_areas": "Pièces à surveiller"
         }
       },
       "rooms": {
@@ -78,7 +79,8 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets"
+          "covers_enabled": "Activer le module volets",
+          "room_areas": "Pièces à surveiller"
         }
       },
       "rooms": {

@@ -29,7 +29,8 @@
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
-          "covers_enabled": "Enable cover module"
+          "covers_enabled": "Enable cover module",
+          "room_areas": "Rooms to monitor"
         }
       },
       "rooms": {
@@ -78,7 +79,8 @@
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
-          "covers_enabled": "Enable cover module"
+          "covers_enabled": "Enable cover module",
+          "room_areas": "Rooms to monitor"
         }
       },
       "rooms": {

@@ -11,9 +11,9 @@ from custom_components.atmoslogic.rooms import build_room_configs
 class FakeArea:
     """Minimal area registry entry for tests."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, temperature_entity_id: str | None = None) -> None:
         self.name = name
-        self.temperature_entity_id = None
+        self.temperature_entity_id = temperature_entity_id
 
 
 class FakeAreaRegistry:
@@ -32,8 +32,8 @@ class RoomHelpersTest(unittest.TestCase):
     def test_builds_rooms_from_home_assistant_areas(self) -> None:
         registry = FakeAreaRegistry(
             {
-                "living_room": FakeArea("Salon"),
-                "bedroom": FakeArea("Chambre"),
+                "living_room": FakeArea("Salon", "sensor.living_temperature"),
+                "bedroom": FakeArea("Chambre", "sensor.bedroom_temperature"),
             }
         )
 
@@ -41,16 +41,7 @@ class RoomHelpersTest(unittest.TestCase):
             rooms = build_room_configs(
                 object(),
                 {
-                    "room_configs": [
-                        {
-                            "area_id": "living_room",
-                            "temperature_entity": "sensor.living_temperature",
-                        },
-                        {
-                            "area_id": "bedroom",
-                            "temperature_entity": "sensor.bedroom_temperature",
-                        },
-                    ]
+                    "room_areas": ["living_room", "bedroom"],
                 },
             )
 
