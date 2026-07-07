@@ -1,7 +1,7 @@
 # AtmosLogic
 
 <p align="center">
-  <img src="branding/logo.png" alt="AtmosLogic logo" width="420">
+  <img src="https://raw.githubusercontent.com/SIM0N-F/AtmosLogic/main/branding/logo.png" alt="AtmosLogic logo" width="420">
 </p>
 
 **Weather-Based Environmental Advisor for Home Assistant**
