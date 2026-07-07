@@ -60,6 +60,7 @@ from .const import (
 from .models import AtmosLogicConfig, AtmosLogicInput, AtmosLogicRecommendation
 from .notification_rules import build_notification_batch
 from .recommendation_engine import compute_recommendation
+from .rooms import build_additional_room_configs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,6 +98,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         self.config_entry = entry
         self._unsubscribers: list[Callable[[], None]] = []
         self._last_recommendation: AtmosLogicRecommendation | None = None
+        self._room_recommendations: dict[str, AtmosLogicRecommendation] = {}
         super().__init__(
             hass,
             _LOGGER,
@@ -127,6 +129,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             notify_cover_open=bool(merged.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN)),
             notify_cover_close=bool(merged.get(CONF_NOTIFY_COVER_CLOSE, DEFAULT_NOTIFY_COVER_CLOSE)),
             notify_laundry_good=bool(merged.get(CONF_NOTIFY_LAUNDRY_GOOD, DEFAULT_NOTIFY_LAUNDRY_GOOD)),
+            room_configs=build_additional_room_configs(merged),
             indoor_humidity_entity=merged.get(CONF_INDOOR_HUMIDITY_ENTITY) or None,
             outdoor_humidity_entity=merged.get(CONF_OUTDOOR_HUMIDITY_ENTITY) or None,
             rain_entity=merged.get(CONF_RAIN_ENTITY) or None,
@@ -161,7 +164,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
     @property
     def _watched_entities(self) -> tuple[str | None, ...]:
         config = self.config
-        return (
+        entities: list[str | None] = [
             config.indoor_temperature_entity,
             config.outdoor_temperature_entity,
             config.indoor_humidity_entity,
@@ -172,24 +175,31 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             config.solar_entity,
             config.climate_entity,
             config.weather_entity,
-        )
+            *[room.temperature_entity for room in config.room_configs],
+        ]
+        deduped: list[str | None] = []
+        for entity_id in entities:
+            if entity_id is not None and entity_id not in deduped:
+                deduped.append(entity_id)
+        return tuple(deduped)
 
     def _handle_state_change(self, _event: object) -> None:
         self.hass.add_job(self.async_request_refresh)
 
     async def _async_update_data(self) -> AtmosLogicRecommendation | None:
         config = self.config
-        reading = self._build_input(config)
-        if reading is None:
-            recommendation = self._fallback_recommendation(
+        recommendation = self._build_recommendation_for_entity(
+            config,
+            config.indoor_temperature_entity,
+        )
+        self._room_recommendations = {}
+        for room in config.room_configs:
+            self._room_recommendations[room.key] = self._build_recommendation_for_entity(
                 config,
-                missing_inputs=[
-                    config.indoor_temperature_entity,
-                    config.outdoor_temperature_entity,
-                ],
+                room.temperature_entity,
+                room_key=room.key,
+                room_name=room.name,
             )
-        else:
-            recommendation = compute_recommendation(config, reading)
 
         await self._maybe_send_notifications(config, recommendation)
         self._last_recommendation = recommendation
@@ -248,6 +258,38 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             },
         )
 
+    def _build_recommendation_for_entity(
+        self,
+        config: AtmosLogicConfig,
+        indoor_temperature_entity: str,
+        *,
+        room_key: str | None = None,
+        room_name: str | None = None,
+    ) -> AtmosLogicRecommendation:
+        reading = self._build_input(config, indoor_temperature_entity)
+        if reading is None:
+            recommendation = self._fallback_recommendation(
+                config,
+                missing_inputs=[
+                    indoor_temperature_entity,
+                    config.outdoor_temperature_entity,
+                ],
+            )
+        else:
+            recommendation = compute_recommendation(config, reading)
+
+        if room_key is not None:
+            recommendation.details.setdefault(
+                "room",
+                {
+                    "key": room_key,
+                    "name": room_name or room_key,
+                    "temperature_entity": indoor_temperature_entity,
+                },
+            )
+
+        return recommendation
+
     async def _maybe_send_notifications(
         self,
         config: AtmosLogicConfig,
@@ -284,8 +326,14 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             blocking=False,
         )
 
-    def _build_input(self, config: AtmosLogicConfig) -> AtmosLogicInput | None:
-        indoor_temperature = self._read_numeric(config.indoor_temperature_entity)
+    @property
+    def room_recommendations(self) -> dict[str, AtmosLogicRecommendation]:
+        """Return the most recent room recommendations."""
+
+        return self._room_recommendations
+
+    def _build_input(self, config: AtmosLogicConfig, indoor_temperature_entity: str) -> AtmosLogicInput | None:
+        indoor_temperature = self._read_numeric(indoor_temperature_entity)
         outdoor_temperature = self._read_numeric(config.outdoor_temperature_entity)
         if indoor_temperature is None or outdoor_temperature is None:
             return None

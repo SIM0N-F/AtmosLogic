@@ -29,7 +29,13 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets"
+          "covers_enabled": "Activer le module volets",
+          "room_1_name": "Nom pièce 1",
+          "room_1_temperature_entity": "Entité de température pièce 1",
+          "room_2_name": "Nom pièce 2",
+          "room_2_temperature_entity": "Entité de température pièce 2",
+          "room_3_name": "Nom pièce 3",
+          "room_3_temperature_entity": "Entité de température pièce 3"
         }
       }
     }
@@ -64,7 +70,13 @@
           "mode": "Mode",
           "laundry_enabled": "Activer le module linge",
           "windows_enabled": "Activer le module fenêtres",
-          "covers_enabled": "Activer le module volets"
+          "covers_enabled": "Activer le module volets",
+          "room_1_name": "Nom pièce 1",
+          "room_1_temperature_entity": "Entité de température pièce 1",
+          "room_2_name": "Nom pièce 2",
+          "room_2_temperature_entity": "Entité de température pièce 2",
+          "room_3_name": "Nom pièce 3",
+          "room_3_temperature_entity": "Entité de température pièce 3"
         }
       }
     }

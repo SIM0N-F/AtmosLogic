@@ -15,6 +15,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import AtmosLogicCoordinator
+from .rooms import AtmosLogicRoomConfig
 
 SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
@@ -60,6 +61,12 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
+ROOM_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = tuple(
+    description
+    for description in SENSOR_DESCRIPTIONS
+    if description.key != "laundry_score" and description.key != "laundry_recommendation"
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -73,6 +80,11 @@ async def async_setup_entry(
         AtmosLogicSensor(coordinator, description)
         for description in SENSOR_DESCRIPTIONS
     )
+    for room in coordinator.config.room_configs:
+        async_add_entities(
+            AtmosLogicSensor(coordinator, description, room)
+            for description in ROOM_SENSOR_DESCRIPTIONS
+        )
 
 
 class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
@@ -82,12 +94,15 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
         self,
         coordinator: AtmosLogicCoordinator,
         description: SensorEntityDescription,
+        room: AtmosLogicRoomConfig | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._attr_entity_description = description
+        self._room = room
         self._attr_icon = description.icon
-        self._attr_name = f"AtmosLogic {description.name}"
-        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
+        self._attr_name = f"AtmosLogic {room.name} {description.name}" if room is not None else f"AtmosLogic {description.name}"
+        room_suffix = f"_{room.key}" if room is not None else ""
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}{room_suffix}_{description.key}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, coordinator.config_entry.entry_id)},
             "name": "AtmosLogic",
@@ -96,11 +111,13 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
 
     @property
     def available(self) -> bool:
-        return super().available and self.coordinator.data is not None
+        if self._room is None:
+            return super().available and self.coordinator.data is not None
+        return super().available and self.coordinator.room_recommendations.get(self._room.key) is not None
 
     @property
     def native_value(self):  # type: ignore[override]
-        data = self.coordinator.data
+        data = self.coordinator.data if self._room is None else self.coordinator.room_recommendations.get(self._room.key)
         if data is None:
             return None
 
@@ -121,7 +138,7 @@ class AtmosLogicSensor(CoordinatorEntity[AtmosLogicCoordinator], SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, object] | None:
-        data = self.coordinator.data
+        data = self.coordinator.data if self._room is None else self.coordinator.room_recommendations.get(self._room.key)
         if data is None:
             return None
         return data.details

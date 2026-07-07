@@ -22,6 +22,7 @@ from .const import (
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_WINDOWS_ENABLED,
 )
+from .rooms import AtmosLogicRoomConfig
 
 
 @dataclass(slots=True)
@@ -45,6 +46,7 @@ class AtmosLogicConfig:
     notify_cover_open: bool = DEFAULT_NOTIFY_COVER_OPEN
     notify_cover_close: bool = DEFAULT_NOTIFY_COVER_CLOSE
     notify_laundry_good: bool = DEFAULT_NOTIFY_LAUNDRY_GOOD
+    room_configs: tuple[AtmosLogicRoomConfig, ...] = ()
     indoor_humidity_entity: str | None = None
     outdoor_humidity_entity: str | None = None
     rain_entity: str | None = None

@@ -51,6 +51,7 @@ from .const import (
     DEFAULT_WINDOWS_ENABLED,
     DOMAIN,
     MODES,
+    ROOM_SLOT_DEFINITIONS,
 )
 
 
@@ -153,6 +154,14 @@ def _build_schema(defaults: dict[str, object]) -> vol.Schema:
                 CONF_COVERS_ENABLED,
                 default=defaults.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED),
             ): selector.BooleanSelector(),
+            **{
+                vol.Optional(name_key, default=defaults.get(name_key) or ""): str
+                for _slot, name_key, _entity_key in ROOM_SLOT_DEFINITIONS
+            },
+            **{
+                vol.Optional(entity_key, default=defaults.get(entity_key)): _entity_selector("sensor")
+                for _slot, _name_key, entity_key in ROOM_SLOT_DEFINITIONS
+            },
             vol.Optional(
                 CONF_NOTIFICATIONS_ENABLED,
                 default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
@@ -195,6 +204,7 @@ def _prepare_schema_input(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
+        *[entity_key for _slot, _name_key, entity_key in ROOM_SLOT_DEFINITIONS],
     ):
         if prepared.get(key) is None:
             prepared[key] = ""
@@ -215,6 +225,7 @@ def _clean_data(user_input: dict[str, object]) -> dict[str, object]:
         CONF_SOLAR_ENTITY,
         CONF_CLIMATE_ENTITY,
         CONF_WEATHER_ENTITY,
+        *[entity_key for _slot, _name_key, entity_key in ROOM_SLOT_DEFINITIONS],
     ):
         if cleaned.get(key) == "":
             cleaned[key] = None

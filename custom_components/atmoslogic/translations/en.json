@@ -29,7 +29,13 @@
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
-          "covers_enabled": "Enable cover module"
+          "covers_enabled": "Enable cover module",
+          "room_1_name": "Room 1 name",
+          "room_1_temperature_entity": "Room 1 temperature entity",
+          "room_2_name": "Room 2 name",
+          "room_2_temperature_entity": "Room 2 temperature entity",
+          "room_3_name": "Room 3 name",
+          "room_3_temperature_entity": "Room 3 temperature entity"
         }
       }
     }
@@ -64,7 +70,13 @@
           "mode": "Mode",
           "laundry_enabled": "Enable laundry module",
           "windows_enabled": "Enable window module",
-          "covers_enabled": "Enable cover module"
+          "covers_enabled": "Enable cover module",
+          "room_1_name": "Room 1 name",
+          "room_1_temperature_entity": "Room 1 temperature entity",
+          "room_2_name": "Room 2 name",
+          "room_2_temperature_entity": "Room 2 temperature entity",
+          "room_3_name": "Room 3 name",
+          "room_3_temperature_entity": "Room 3 temperature entity"
         }
       }
     }
