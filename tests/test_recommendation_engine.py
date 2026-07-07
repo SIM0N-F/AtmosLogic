@@ -102,6 +102,43 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertLess(recommendation.laundry_score, 50)
         self.assertEqual(recommendation.laundry_recommendation, "poor")
 
+    def test_nighttime_discourages_laundry(self) -> None:
+        config = make_config()
+        reading = AtmosLogicInput(
+            indoor_temperature=25.0,
+            outdoor_temperature=19.0,
+            outdoor_humidity=55.0,
+            wind_speed=12.0,
+            solar_value=120.0,
+            solar_unit="%",
+            sun_above_horizon=False,
+        )
+
+        recommendation = compute_recommendation(config, reading)
+
+        self.assertEqual(recommendation.laundry_recommendation, "poor")
+        self.assertFalse(recommendation.good_for_laundry)
+        self.assertTrue(recommendation.details["signals"]["night"])
+
+    def test_forecast_rain_discourages_laundry(self) -> None:
+        config = make_config()
+        reading = AtmosLogicInput(
+            indoor_temperature=25.0,
+            outdoor_temperature=19.0,
+            outdoor_humidity=55.0,
+            wind_speed=12.0,
+            solar_value=120.0,
+            solar_unit="%",
+            sun_above_horizon=True,
+            weather_rain_forecast=True,
+        )
+
+        recommendation = compute_recommendation(config, reading)
+
+        self.assertEqual(recommendation.laundry_recommendation, "poor")
+        self.assertFalse(recommendation.good_for_laundry)
+        self.assertTrue(recommendation.details["signals"]["rain_forecast"])
+
     def test_heating_with_sunlight_opens_covers(self) -> None:
         config = make_config(mode="winter")
         reading = AtmosLogicInput(

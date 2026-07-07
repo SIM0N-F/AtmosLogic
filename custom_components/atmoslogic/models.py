@@ -70,6 +70,8 @@ class AtmosLogicInput:
     wind_gust: float | None = None
     solar_value: float | None = None
     solar_unit: str | None = None
+    sun_above_horizon: bool | None = None
+    weather_rain_forecast: bool = False
     weather_condition: str | None = None
     climate_current_temperature: float | None = None
     climate_hvac_action: str | None = None

@@ -57,6 +57,12 @@ def _solar_available(reading: AtmosLogicInput) -> bool:
     return value >= 500
 
 
+def _is_night(reading: AtmosLogicInput) -> bool:
+    if reading.sun_above_horizon is False:
+        return True
+    return False
+
+
 def _rain_detected(config: AtmosLogicConfig, reading: AtmosLogicInput) -> bool:
     if reading.rain_detected:
         return True
@@ -203,6 +209,15 @@ def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: boo
         score -= 50
         components.append({"reason": "rain", "delta": -50})
 
+    night = _is_night(reading)
+    if night:
+        score -= 35
+        components.append({"reason": "nightfall", "delta": -35})
+
+    if reading.weather_rain_forecast:
+        score -= 35
+        components.append({"reason": "rain_forecast", "delta": -35})
+
     if reading.outdoor_temperature < 8:
         score -= 15
         components.append({"reason": "too_cold", "delta": -15})
@@ -210,6 +225,11 @@ def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: boo
     if strong_wind:
         score -= 15
         components.append({"reason": "too_windy", "delta": -15})
+
+    if night and reading.weather_rain_forecast:
+        score = min(score, 20)
+    elif night or reading.weather_rain_forecast:
+        score = min(score, 35)
 
     score = int(clamp(score, 0, 100))
     return score, components
@@ -255,6 +275,8 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "rain_detected": rain,
             "strong_wind": strong_wind,
             "solar_available": _solar_available(reading),
+            "night": _is_night(reading),
+            "rain_forecast": reading.weather_rain_forecast,
         },
         "breakdown": {
             "thermal_score": thermal_score,
@@ -282,4 +304,3 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
         good_for_laundry=laundry_recommendation in {"excellent", "good"},
         details=details,
     )
-

@@ -111,6 +111,8 @@ If the standard `notify.notify` service is not available, AtmosLogic falls back 
 
 For quick access from the device page, the notification toggles are also exposed as config switches inside the AtmosLogic device.
 
+Laundry recommendations also take into account nighttime and short-term rain forecasts when the data is available, so "good for laundry" is reserved for a real drying window.
+
 If you prefer, you can still use the exposed sensors and binary sensors inside your own Home Assistant automations.
 
 ## Export and Import

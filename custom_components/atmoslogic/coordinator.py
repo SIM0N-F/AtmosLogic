@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
+from datetime import timezone
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CLIMATE_ENTITY,
@@ -290,11 +292,14 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
 
         weather_state = self.hass.states.get(config.weather_entity) if config.weather_entity else None
         climate_state = self.hass.states.get(config.climate_entity) if config.climate_entity else None
+        sun_state = self.hass.states.get("sun.sun")
 
         rain_detected = self._read_bool(config.rain_entity)
         wind_speed = self._read_numeric(config.wind_speed_entity)
         wind_gust = self._read_numeric(config.wind_gust_entity)
         solar_value, solar_unit = self._read_solar(config.solar_entity)
+        sun_above_horizon = self._sun_above_horizon(sun_state)
+        weather_rain_forecast = self._weather_rain_forecast(weather_state, config.rain_threshold) if weather_state else False
 
         if weather_state is not None:
             weather_rain = self._weather_rain(weather_state, config.rain_threshold)
@@ -345,6 +350,8 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             wind_gust=wind_gust,
             solar_value=solar_value,
             solar_unit=solar_unit,
+            sun_above_horizon=sun_above_horizon,
+            weather_rain_forecast=weather_rain_forecast,
             weather_condition=weather_state.state if weather_state is not None else None,
             climate_current_temperature=climate_current_temperature,
             climate_hvac_action=str(climate_hvac_action) if climate_hvac_action is not None else None,
@@ -396,6 +403,65 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             return max(0.0, 100.0 - cloud_coverage), "%"
 
         return None, None
+
+    def _sun_above_horizon(self, state: State | None) -> bool | None:
+        if state is None:
+            return None
+
+        normalized = state.state.lower().strip()
+        if normalized == "above_horizon":
+            return True
+        if normalized == "below_horizon":
+            return False
+        return None
+
+    def _weather_rain_forecast(self, state: State, rain_threshold: float) -> bool:
+        forecasts = self._weather_forecasts(state)
+        if not forecasts:
+            return False
+
+        horizon = dt_util.utcnow() + timedelta(hours=12)
+        for forecast in forecasts[:6]:
+            if not isinstance(forecast, dict):
+                continue
+
+            forecast_time = self._forecast_datetime(forecast)
+            if forecast_time is not None and forecast_time > horizon:
+                continue
+
+            condition = forecast.get("condition")
+            if isinstance(condition, str) and condition.lower().strip() in {"rainy", "pouring", "lightning-rainy", "snowy", "hail"}:
+                return True
+
+            precipitation = _coerce_float(forecast.get("precipitation"))
+            precipitation_intensity = _coerce_float(forecast.get("precipitation_intensity"))
+            if any(
+                value is not None and value >= rain_threshold
+                for value in (precipitation, precipitation_intensity)
+            ):
+                return True
+
+        return False
+
+    def _weather_forecasts(self, state: State) -> list[dict[str, object]]:
+        for attribute in ("forecast_hourly", "forecast", "forecast_daily"):
+            forecasts = state.attributes.get(attribute)
+            if isinstance(forecasts, list):
+                return [forecast for forecast in forecasts if isinstance(forecast, dict)]
+        return []
+
+    def _forecast_datetime(self, forecast: dict[str, object]):
+        for key in ("datetime", "datetime_start", "time"):
+            value = forecast.get(key)
+            if isinstance(value, str):
+                try:
+                    parsed = dt_util.parse_datetime(value)
+                    if parsed is not None and parsed.tzinfo is None:
+                        return parsed.replace(tzinfo=timezone.utc)
+                    return parsed
+                except (ValueError, TypeError):
+                    return None
+        return None
 
     def _read_state_attribute(self, state: State, attribute: str) -> float | None:
         value = state.attributes.get(attribute)
