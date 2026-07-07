@@ -320,6 +320,12 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return None
         return area.temperature_entity_id
 
+    def _reconfigure_entry(self) -> config_entries.ConfigEntry | None:
+        entry_id = self.context.get("entry_id")
+        if entry_id is None:
+            return None
+        return self.hass.config_entries.async_get_entry(entry_id)
+
     async def async_step_user(self, user_input: dict[str, object] | None = None):
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -341,8 +347,7 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(self, user_input: dict[str, object] | None = None):
         """Handle updates from the device page reconfigure flow."""
 
-        entry_id = self.context.get("entry_id")
-        entry = self.hass.config_entries.async_get_entry(entry_id) if entry_id is not None else None
+        entry = self._reconfigure_entry()
         if entry is None:
             return self.async_abort(reason="unknown_entry")
 
@@ -353,8 +358,7 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_menu(step_id="reconfigure", menu_options=["reconfigure_general", "reconfigure_rooms"])
 
     async def async_step_reconfigure_general(self, user_input: dict[str, object] | None = None):
-        entry_id = self.context.get("entry_id")
-        entry = self.hass.config_entries.async_get_entry(entry_id) if entry_id is not None else None
+        entry = self._reconfigure_entry()
         if entry is None:
             return self.async_abort(reason="unknown_entry")
 
@@ -385,8 +389,7 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_abort(reason="reconfigure_successful")
 
     async def async_step_reconfigure_rooms(self, user_input: dict[str, object] | None = None):
-        entry_id = self.context.get("entry_id")
-        entry = self.hass.config_entries.async_get_entry(entry_id) if entry_id is not None else None
+        entry = self._reconfigure_entry()
         if entry is None:
             return self.async_abort(reason="unknown_entry")
 
@@ -444,13 +447,13 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.config_entries.async_reload(entry.entry_id)
             return self.async_abort(reason="reconfigure_successful")
 
-        return await self.async_step_reconfigure_room(entry)
+        return await self.async_step_reconfigure_room()
 
-    async def async_step_reconfigure_room(
-        self,
-        entry: config_entries.ConfigEntry,
-        user_input: dict[str, object] | None = None,
-    ):
+    async def async_step_reconfigure_room(self, user_input: dict[str, object] | None = None):
+        entry = self._reconfigure_entry()
+        if entry is None:
+            return self.async_abort(reason="unknown_entry")
+
         if not self._selected_room_area_ids:
             data = dict(entry.options)
             if CONF_ROOM_CONFIGS in {**entry.data, **entry.options}:
@@ -511,7 +514,7 @@ class AtmosLogicConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.config_entries.async_reload(entry.entry_id)
             return self.async_abort(reason="reconfigure_successful")
 
-        return await self.async_step_reconfigure_room(entry)
+        return await self.async_step_reconfigure_room()
 
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):
         merged_defaults = dict(self._core_data)
@@ -689,9 +692,7 @@ class AtmosLogicOptionsFlow(config_entries.OptionsFlow):
         if isinstance(existing_room_configs, list):
             self._core_data[CONF_ROOM_CONFIGS] = existing_room_configs
 
-        self.hass.config_entries.async_update_entry(entry, options=self._core_data)
-        await self.hass.config_entries.async_reload(entry.entry_id)
-        return self.async_abort(reason="reconfigure_successful")
+        return self.async_create_entry(title="", data=self._core_data)
 
     async def async_step_rooms(self, user_input: dict[str, object] | None = None):
         merged = self._merged()
