@@ -132,6 +132,8 @@
         "description": "Configure les bascules de notification.",
         "data": {
           "notifications_enabled": "Activer les notifications",
+          "notify_summary": "Envoyer un résumé de notification",
+          "notify_room_recommendations": "Notifier les recommandations par pièce",
           "notify_window_open": "Notifier quand il faut ouvrir les fenetres",
           "notify_window_close": "Notifier quand il faut fermer les fenetres",
           "notify_cover_open": "Notifier quand il faut ouvrir les volets",
@@ -210,6 +212,12 @@
     "switch": {
       "notifications_enabled": {
         "name": "Notifications activées"
+      },
+      "notify_summary": {
+        "name": "Envoyer des résumés"
+      },
+      "notify_room_recommendations": {
+        "name": "Notifier les pièces"
       },
       "notify_window_open": {
         "name": "Notifier quand il faut ouvrir les fenêtres"

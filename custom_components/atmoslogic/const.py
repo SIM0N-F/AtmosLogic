@@ -33,6 +33,8 @@ CONF_STRONG_WIND_THRESHOLD = "strong_wind_threshold"
 CONF_HIGH_HUMIDITY_THRESHOLD = "high_humidity_threshold"
 CONF_RAIN_THRESHOLD = "rain_threshold"
 CONF_NOTIFICATIONS_ENABLED = "notifications_enabled"
+CONF_NOTIFY_SUMMARY = "notify_summary"
+CONF_NOTIFY_ROOM_RECOMMENDATIONS = "notify_room_recommendations"
 CONF_NOTIFY_WINDOW_OPEN = "notify_window_open"
 CONF_NOTIFY_WINDOW_CLOSE = "notify_window_close"
 CONF_NOTIFY_COVER_OPEN = "notify_cover_open"
@@ -71,6 +73,8 @@ DEFAULT_MODE = "auto"
 DEFAULT_LAUNDRY_ENABLED = True
 DEFAULT_WINDOWS_ENABLED = True
 DEFAULT_COVERS_ENABLED = True
+DEFAULT_NOTIFY_SUMMARY = False
+DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS = False
 
 MODE_AUTO = "auto"
 MODE_SUMMER = "summer"

@@ -21,6 +21,8 @@ from .const import (
     CONF_LAUNDRY_ENABLED,
     CONF_MODE,
     CONF_NOTIFICATIONS_ENABLED,
+    CONF_NOTIFY_ROOM_RECOMMENDATIONS,
+    CONF_NOTIFY_SUMMARY,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_RAIN_ENTITY,
@@ -53,6 +55,8 @@ from .const import (
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
     DEFAULT_RAIN_THRESHOLD,
+    DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS,
+    DEFAULT_NOTIFY_SUMMARY,
     DEFAULT_STRONG_WIND_THRESHOLD,
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_WINDOWS_ENABLED,
@@ -195,6 +199,14 @@ def _build_notification_schema(defaults: Mapping[str, object]) -> vol.Schema:
         vol.Optional(
             CONF_NOTIFICATIONS_ENABLED,
             default=defaults.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_SUMMARY,
+            default=defaults.get(CONF_NOTIFY_SUMMARY, DEFAULT_NOTIFY_SUMMARY),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_NOTIFY_ROOM_RECOMMENDATIONS,
+            default=defaults.get(CONF_NOTIFY_ROOM_RECOMMENDATIONS, DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS),
         ): selector.BooleanSelector(),
         vol.Optional(
             CONF_NOTIFY_WINDOW_OPEN,

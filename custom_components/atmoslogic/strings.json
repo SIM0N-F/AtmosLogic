@@ -132,6 +132,8 @@
         "description": "Configure notification toggles.",
         "data": {
           "notifications_enabled": "Enable notifications",
+          "notify_summary": "Send a summary notification",
+          "notify_room_recommendations": "Notify room recommendations",
           "notify_window_open": "Notify when windows should open",
           "notify_window_close": "Notify when windows should close",
           "notify_cover_open": "Notify when covers should open",
@@ -210,6 +212,12 @@
     "switch": {
       "notifications_enabled": {
         "name": "Notifications enabled"
+      },
+      "notify_summary": {
+        "name": "Send summary notifications"
+      },
+      "notify_room_recommendations": {
+        "name": "Notify room recommendations"
       },
       "notify_window_open": {
         "name": "Notify windows should open"

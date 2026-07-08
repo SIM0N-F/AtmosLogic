@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 
 from custom_components.atmoslogic.const import DEFAULT_TARGET_TEMPERATURE
-from custom_components.atmoslogic.models import AtmosLogicConfig, AtmosLogicInput
+from custom_components.atmoslogic.models import AtmosLogicConfig, AtmosLogicInput, AtmosLogicRecommendation
 from custom_components.atmoslogic.notification_rules import build_notification_batch
 from custom_components.atmoslogic.recommendation_engine import compute_recommendation
 
@@ -26,6 +26,8 @@ def make_config(**overrides: object) -> AtmosLogicConfig:
         "windows_enabled": True,
         "covers_enabled": True,
         "notifications_enabled": True,
+        "notify_summary": False,
+        "notify_room_recommendations": False,
         "notify_window_open": True,
         "notify_window_close": True,
         "notify_cover_open": True,
@@ -42,6 +44,27 @@ def make_config(**overrides: object) -> AtmosLogicConfig:
     }
     data.update(overrides)
     return AtmosLogicConfig(**data)
+
+
+def make_recommendation(**overrides: object) -> AtmosLogicRecommendation:
+    """Create a manual recommendation snapshot for notification tests."""
+
+    data = {
+        "home_mode": "comfort",
+        "window_recommendation": "neutral",
+        "cover_recommendation": "neutral",
+        "laundry_score": 50,
+        "laundry_recommendation": "average",
+        "thermal_score": 0,
+        "open_windows_recommended": False,
+        "close_windows_recommended": False,
+        "open_covers_recommended": False,
+        "close_covers_recommended": False,
+        "good_for_laundry": False,
+        "details": {"inputs": {}, "reasons": {}, "confidence": 50},
+    }
+    data.update(overrides)
+    return AtmosLogicRecommendation(**data)
 
 
 class NotificationRulesTest(unittest.TestCase):
@@ -117,6 +140,59 @@ class NotificationRulesTest(unittest.TestCase):
         self.assertGreaterEqual(len(notifications), 2)
         self.assertTrue(any(notification.key == "window_open" for notification in notifications))
         self.assertTrue(any(notification.key == "laundry_good" for notification in notifications))
+
+    def test_room_notifications_are_generated_for_room_transitions(self) -> None:
+        config = make_config(notify_room_recommendations=True)
+        previous_global = make_recommendation()
+        current_global = make_recommendation()
+        previous_rooms = {
+            "bedroom": make_recommendation(
+                details={"inputs": {}, "reasons": {}, "confidence": 50, "room": {"name": "Chambre"}},
+            )
+        }
+        current_rooms = {
+            "bedroom": make_recommendation(
+                open_windows_recommended=True,
+                window_recommendation="open",
+                details={"inputs": {}, "reasons": {}, "confidence": 50, "room": {"name": "Chambre"}},
+            )
+        }
+
+        notifications = build_notification_batch(
+            config,
+            previous_global,
+            current_global,
+            previous_room_recommendations=previous_rooms,
+            current_room_recommendations=current_rooms,
+            home_summary={
+                "home_mode": "comfort",
+                "global_score": 0,
+                "priority_room": "Chambre",
+                "next_action_recommended": "open_windows",
+                "rooms": [{"name": "Chambre", "next_action_recommended": "open_windows"}],
+            },
+        )
+
+        self.assertTrue(any(notification.key == "room_bedroom_window_open" for notification in notifications))
+        self.assertTrue(any("Chambre" in notification.message for notification in notifications))
+
+    def test_summary_notification_is_preprended_when_enabled(self) -> None:
+        config = make_config(notify_summary=True)
+        previous = make_recommendation()
+        current = make_recommendation(open_windows_recommended=True, window_recommendation="open")
+        home_summary = {
+            "home_mode": "preserve_cool",
+            "global_score": -12,
+            "priority_room": "Chambre",
+            "next_action_recommended": "open_windows",
+            "rooms": [{"name": "Chambre", "next_action_recommended": "open_windows"}],
+        }
+
+        notifications = build_notification_batch(config, previous, current, home_summary=home_summary)
+
+        self.assertGreaterEqual(len(notifications), 2)
+        self.assertEqual(notifications[0].key, "summary")
+        self.assertIn("Résumé AtmosLogic", notifications[0].message)
 
 
 if __name__ == "__main__":

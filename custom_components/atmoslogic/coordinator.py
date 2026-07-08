@@ -23,6 +23,8 @@ from .const import (
     CONF_LAUNDRY_ENABLED,
     CONF_MODE,
     CONF_NOTIFICATIONS_ENABLED,
+    CONF_NOTIFY_ROOM_RECOMMENDATIONS,
+    CONF_NOTIFY_SUMMARY,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_RAIN_ENTITY,
@@ -53,6 +55,8 @@ from .const import (
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
     DEFAULT_RAIN_THRESHOLD,
+    DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS,
+    DEFAULT_NOTIFY_SUMMARY,
     DEFAULT_STRONG_WIND_THRESHOLD,
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_WINDOWS_ENABLED,
@@ -126,6 +130,10 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             windows_enabled=bool(merged.get(CONF_WINDOWS_ENABLED, DEFAULT_WINDOWS_ENABLED)),
             covers_enabled=bool(merged.get(CONF_COVERS_ENABLED, DEFAULT_COVERS_ENABLED)),
             notifications_enabled=bool(merged.get(CONF_NOTIFICATIONS_ENABLED, DEFAULT_NOTIFICATIONS_ENABLED)),
+            notify_summary=bool(merged.get(CONF_NOTIFY_SUMMARY, DEFAULT_NOTIFY_SUMMARY)),
+            notify_room_recommendations=bool(
+                merged.get(CONF_NOTIFY_ROOM_RECOMMENDATIONS, DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS)
+            ),
             notify_window_open=bool(merged.get(CONF_NOTIFY_WINDOW_OPEN, DEFAULT_NOTIFY_WINDOW_OPEN)),
             notify_window_close=bool(merged.get(CONF_NOTIFY_WINDOW_CLOSE, DEFAULT_NOTIFY_WINDOW_CLOSE)),
             notify_cover_open=bool(merged.get(CONF_NOTIFY_COVER_OPEN, DEFAULT_NOTIFY_COVER_OPEN)),
@@ -191,6 +199,8 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
 
     async def _async_update_data(self) -> AtmosLogicRecommendation | None:
         config = self.config
+        previous_recommendation = self._last_recommendation
+        previous_room_recommendations = dict(self._room_recommendations)
         recommendation = self._build_recommendation_for_entity(
             config,
             config.indoor_temperature_entity,
@@ -204,7 +214,14 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
                 room_name=room.name,
             )
 
-        await self._maybe_send_notifications(config, recommendation)
+        await self._maybe_send_notifications(
+            config,
+            previous_recommendation,
+            recommendation,
+            previous_room_recommendations,
+            dict(self._room_recommendations),
+            self.home_summary(),
+        )
         self._last_recommendation = recommendation
         return recommendation
 
@@ -312,12 +329,22 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
     async def _maybe_send_notifications(
         self,
         config: AtmosLogicConfig,
+        previous: AtmosLogicRecommendation | None,
         recommendation: AtmosLogicRecommendation,
+        previous_room_recommendations: dict[str, AtmosLogicRecommendation],
+        current_room_recommendations: dict[str, AtmosLogicRecommendation],
+        home_summary: dict[str, Any],
     ) -> None:
         """Send configured notifications when recommendations rise."""
 
-        previous = self._last_recommendation
-        notifications = build_notification_batch(config, previous, recommendation)
+        notifications = build_notification_batch(
+            config,
+            previous,
+            recommendation,
+            previous_room_recommendations=previous_room_recommendations,
+            current_room_recommendations=current_room_recommendations,
+            home_summary=home_summary,
+        )
         if not notifications:
             return
 

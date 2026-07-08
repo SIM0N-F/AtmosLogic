@@ -15,6 +15,8 @@ from .const import (
     CONF_NOTIFY_COVER_CLOSE,
     CONF_NOTIFY_COVER_OPEN,
     CONF_NOTIFY_LAUNDRY_GOOD,
+    CONF_NOTIFY_ROOM_RECOMMENDATIONS,
+    CONF_NOTIFY_SUMMARY,
     CONF_NOTIFY_WINDOW_CLOSE,
     CONF_NOTIFY_WINDOW_OPEN,
     DOMAIN,
@@ -36,6 +38,16 @@ SWITCH_DESCRIPTIONS: tuple[AtmosLogicSwitchDescription, ...] = (
         key=CONF_NOTIFICATIONS_ENABLED,
         name="Notifications enabled",
         icon="mdi:bell",
+    ),
+    AtmosLogicSwitchDescription(
+        key=CONF_NOTIFY_SUMMARY,
+        name="Send summary notifications",
+        icon="mdi:text-box-outline",
+    ),
+    AtmosLogicSwitchDescription(
+        key=CONF_NOTIFY_ROOM_RECOMMENDATIONS,
+        name="Notify room recommendations",
+        icon="mdi:home-city-outline",
     ),
     AtmosLogicSwitchDescription(
         key=CONF_NOTIFY_WINDOW_OPEN,

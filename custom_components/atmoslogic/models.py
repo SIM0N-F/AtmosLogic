@@ -12,9 +12,11 @@ from .const import (
     DEFAULT_LAUNDRY_ENABLED,
     DEFAULT_MODE,
     DEFAULT_NOTIFICATIONS_ENABLED,
+    DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS,
     DEFAULT_NOTIFY_COVER_CLOSE,
     DEFAULT_NOTIFY_COVER_OPEN,
     DEFAULT_NOTIFY_LAUNDRY_GOOD,
+    DEFAULT_NOTIFY_SUMMARY,
     DEFAULT_NOTIFY_WINDOW_CLOSE,
     DEFAULT_NOTIFY_WINDOW_OPEN,
     DEFAULT_RAIN_THRESHOLD,
@@ -41,6 +43,8 @@ class AtmosLogicConfig:
     windows_enabled: bool = DEFAULT_WINDOWS_ENABLED
     covers_enabled: bool = DEFAULT_COVERS_ENABLED
     notifications_enabled: bool = DEFAULT_NOTIFICATIONS_ENABLED
+    notify_summary: bool = DEFAULT_NOTIFY_SUMMARY
+    notify_room_recommendations: bool = DEFAULT_NOTIFY_ROOM_RECOMMENDATIONS
     notify_window_open: bool = DEFAULT_NOTIFY_WINDOW_OPEN
     notify_window_close: bool = DEFAULT_NOTIFY_WINDOW_CLOSE
     notify_cover_open: bool = DEFAULT_NOTIFY_COVER_OPEN

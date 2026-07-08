@@ -107,6 +107,8 @@ AtmosLogic can also send notifications automatically when a recommendation becom
 You can configure:
 
 - the built-in Home Assistant notify service if it is available
+- summary notifications that group the current house state into one message
+- room recommendation notifications for monitored Areas
 - window-open notifications
 - window-close notifications
 - cover-open notifications
