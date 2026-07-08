@@ -96,6 +96,20 @@ def _drying_time_estimation(hours: float | None) -> str | None:
     return "6h+"
 
 
+def _forecast_hotter_today(reading: AtmosLogicInput, delta_threshold: float = 2.0) -> bool:
+    forecast_high = reading.weather_temperature_forecast_high
+    if forecast_high is None:
+        return False
+    return forecast_high >= reading.indoor_temperature + delta_threshold
+
+
+def _forecast_temperature_delta(reading: AtmosLogicInput) -> float | None:
+    forecast_high = reading.weather_temperature_forecast_high
+    if forecast_high is None:
+        return None
+    return forecast_high - reading.outdoor_temperature
+
+
 def _confidence(reading: AtmosLogicInput) -> int:
     score = 100
     penalties = (
@@ -130,6 +144,9 @@ def _thermal_reasons(reading: AtmosLogicInput, config: AtmosLogicConfig) -> list
     else:
         reasons.append("indoor_temperature_below_target")
 
+    if _forecast_hotter_today(reading):
+        reasons.append("forecast_hotter_today")
+
     return reasons
 
 
@@ -153,7 +170,20 @@ def _thermal_score(reading: AtmosLogicInput, config: AtmosLogicConfig) -> int:
 
 def _home_mode(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: bool, strong_wind: bool) -> str:
     delta = reading.indoor_temperature - reading.target_temperature
+    forecast_hot_day = _forecast_hotter_today(reading)
+    can_refresh_now = (
+        not rain
+        and not strong_wind
+        and reading.outdoor_temperature < reading.indoor_temperature - 1
+        and reading.indoor_temperature >= reading.target_temperature - config.comfort_margin
+    )
+
+    if forecast_hot_day and can_refresh_now:
+        return "ventilate"
+
     if abs(delta) <= config.comfort_margin:
+        if forecast_hot_day:
+            return "preserve_cool"
         if config.mode == MODE_SUMMER:
             return "preserve_cool"
         if config.mode == MODE_WINTER:
@@ -161,7 +191,9 @@ def _home_mode(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: bool, s
         return "comfort"
 
     if delta > config.comfort_margin:
-        if not rain and not strong_wind and reading.outdoor_temperature < reading.indoor_temperature - 1:
+        if can_refresh_now:
+            return "ventilate"
+        if forecast_hot_day and reading.outdoor_temperature < reading.indoor_temperature:
             return "ventilate"
         if reading.outdoor_temperature >= reading.indoor_temperature:
             return "preserve_cool"
@@ -206,6 +238,14 @@ def _window_recommendation(
 
     delta = reading.indoor_temperature - reading.target_temperature
     outside_vs_inside = reading.outdoor_temperature - reading.indoor_temperature
+    forecast_hot_day = _forecast_hotter_today(reading)
+
+    if (
+        forecast_hot_day
+        and outside_vs_inside <= -1
+        and reading.indoor_temperature >= reading.target_temperature - config.comfort_margin
+    ):
+        return "open" if delta > config.comfort_margin else "keep_open"
 
     if delta > config.comfort_margin:
         if outside_vs_inside <= -3:
@@ -243,6 +283,7 @@ def _window_reasons(
 
     delta = reading.indoor_temperature - reading.target_temperature
     outside_vs_inside = reading.outdoor_temperature - reading.indoor_temperature
+    forecast_hot_day = _forecast_hotter_today(reading)
     if delta > config.comfort_margin:
         reasons.append("indoor_hotter_than_target")
         if outside_vs_inside <= -3:
@@ -251,6 +292,9 @@ def _window_reasons(
             reasons.append("outside_cooler")
         else:
             reasons.append("outside_not_cooler_enough")
+    elif forecast_hot_day and outside_vs_inside <= -1:
+        reasons.append("forecast_hotter_today")
+        reasons.append("outside_cooler_now")
     elif delta < -config.comfort_margin:
         reasons.append("indoor_cooler_than_target")
         if outside_vs_inside >= 1:
@@ -311,6 +355,8 @@ def _cover_reasons(
         reasons.append("strong_wind_detected")
     if _solar_available(reading):
         reasons.append("solar_available")
+    if _forecast_hotter_today(reading):
+        reasons.append("forecast_hotter_today")
 
     delta = reading.indoor_temperature - reading.target_temperature
     if delta > config.comfort_margin and reading.outdoor_temperature >= reading.indoor_temperature + 1:
@@ -483,6 +529,8 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
     laundry_recommendation = _laundry_recommendation(laundry_score)
     laundry_reasons = _laundry_reasons(reading, rain, strong_wind, laundry_components, drying_window_hours)
     drying_time_estimation = _drying_time_estimation(drying_window_hours)
+    forecast_hot_day = _forecast_hotter_today(reading)
+    forecast_temperature_delta = _forecast_temperature_delta(reading)
 
     details: dict[str, Any] = {
         "config": {
@@ -502,6 +550,8 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "solar_available": _solar_available(reading),
             "night": _is_night(reading),
             "rain_forecast": reading.weather_rain_forecast,
+            "forecast_hotter_today": forecast_hot_day,
+            "forecast_temperature_delta": forecast_temperature_delta,
         },
         "confidence": confidence,
         "reasons": {
@@ -516,6 +566,9 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "laundry_components": laundry_components,
             "laundry_drying_window_hours": drying_window_hours,
             "laundry_drying_time_estimation": drying_time_estimation,
+            "forecast_high_temperature": reading.weather_temperature_forecast_high,
+            "forecast_low_temperature": reading.weather_temperature_forecast_low,
+            "forecast_high_in_hours": reading.weather_temperature_forecast_high_hours,
         },
         "recommendations": {
             "home_mode": home_mode,
@@ -532,6 +585,10 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "laundry_score": laundry_score,
             "laundry_drying_window_hours": drying_window_hours,
             "laundry_drying_time_estimation": drying_time_estimation,
+            "forecast_high_temperature": reading.weather_temperature_forecast_high,
+            "forecast_low_temperature": reading.weather_temperature_forecast_low,
+            "forecast_high_in_hours": reading.weather_temperature_forecast_high_hours,
+            "forecast_temperature_delta": forecast_temperature_delta,
         },
     }
 

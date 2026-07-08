@@ -170,6 +170,29 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertIn("rain_forecast_soon", recommendation.details["reasons"]["laundry"])
         self.assertIn("very_short_drying_window", recommendation.details["reasons"]["laundry"])
 
+    def test_hot_forecast_prefers_precooling(self) -> None:
+        config = make_config()
+        reading = AtmosLogicInput(
+            indoor_temperature=22.0,
+            outdoor_temperature=20.0,
+            outdoor_humidity=48.0,
+            wind_speed=6.0,
+            weather_temperature_forecast_high=30.0,
+            weather_temperature_forecast_low=18.0,
+            weather_temperature_forecast_high_hours=6.0,
+            sun_above_horizon=True,
+        )
+
+        recommendation = compute_recommendation(config, reading)
+
+        self.assertEqual(recommendation.home_mode, "ventilate")
+        self.assertEqual(recommendation.window_recommendation, "open")
+        self.assertTrue(recommendation.open_windows_recommended)
+        self.assertTrue(recommendation.details["signals"]["forecast_hotter_today"])
+        self.assertIn("forecast_hotter_today", recommendation.details["reasons"]["home"])
+        self.assertEqual(recommendation.details["summary"]["forecast_high_temperature"], 30.0)
+        self.assertEqual(recommendation.details["summary"]["forecast_low_temperature"], 18.0)
+
     def test_heating_with_sunlight_opens_covers(self) -> None:
         config = make_config(mode="winter")
         reading = AtmosLogicInput(

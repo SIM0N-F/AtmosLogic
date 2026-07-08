@@ -81,6 +81,9 @@ class AtmosLogicInput:
     sun_next_setting_hours: float | None = None
     weather_rain_forecast: bool = False
     weather_rain_forecast_hours: float | None = None
+    weather_temperature_forecast_high: float | None = None
+    weather_temperature_forecast_low: float | None = None
+    weather_temperature_forecast_high_hours: float | None = None
     weather_condition: str | None = None
     climate_current_temperature: float | None = None
     climate_hvac_action: str | None = None

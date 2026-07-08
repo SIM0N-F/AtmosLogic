@@ -438,6 +438,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         if recommendation is None:
             return {}
 
+        details = recommendation.details
         rooms: list[dict[str, Any]] = []
         for room in self.config.room_configs:
             room_recommendation = self._room_recommendations.get(room.key)
@@ -472,6 +473,9 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             "laundry_score": recommendation.laundry_score,
             "laundry_drying_window_hours": summary.get("laundry_drying_window_hours"),
             "laundry_drying_time_estimation": summary.get("laundry_drying_time_estimation"),
+            "forecast_high_temperature": details.get("inputs", {}).get("weather_temperature_forecast_high"),
+            "forecast_low_temperature": details.get("inputs", {}).get("weather_temperature_forecast_low"),
+            "forecast_high_in_hours": details.get("inputs", {}).get("weather_temperature_forecast_high_hours"),
             "confidence": recommendation.details.get("confidence", 0),
             "reasons": recommendation.details.get("reasons", {}).get("home", []),
         }
@@ -548,6 +552,11 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         weather_rain_forecast_hours = (
             self._weather_rain_forecast_hours(weather_state, config.rain_threshold) if weather_state else None
         )
+        (
+            weather_temperature_forecast_high,
+            weather_temperature_forecast_low,
+            weather_temperature_forecast_high_hours,
+        ) = self._weather_temperature_forecast(weather_state) if weather_state else (None, None, None)
         sun_next_setting_hours = self._time_until_attribute(sun_state, "next_setting")
 
         if weather_state is not None:
@@ -603,6 +612,9 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             sun_next_setting_hours=sun_next_setting_hours,
             weather_rain_forecast=weather_rain_forecast,
             weather_rain_forecast_hours=weather_rain_forecast_hours,
+            weather_temperature_forecast_high=weather_temperature_forecast_high,
+            weather_temperature_forecast_low=weather_temperature_forecast_low,
+            weather_temperature_forecast_high_hours=weather_temperature_forecast_high_hours,
             weather_condition=weather_state.state if weather_state is not None else None,
             climate_current_temperature=climate_current_temperature,
             climate_hvac_action=str(climate_hvac_action) if climate_hvac_action is not None else None,
@@ -726,6 +738,49 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
                 closest_hours = hours
 
         return closest_hours
+
+    def _weather_temperature_forecast(
+        self,
+        state: State,
+    ) -> tuple[float | None, float | None, float | None]:
+        forecasts = self._weather_forecasts(state)
+        if not forecasts:
+            return None, None, None
+
+        horizon = dt_util.utcnow() + timedelta(hours=24)
+        today = dt_util.as_local(dt_util.utcnow()).date()
+        forecast_high: float | None = None
+        forecast_low: float | None = None
+        forecast_high_hours: float | None = None
+
+        for forecast in forecasts[:12]:
+            if not isinstance(forecast, dict):
+                continue
+
+            forecast_time = self._forecast_datetime(forecast)
+            if forecast_time is not None:
+                local_time = dt_util.as_local(forecast_time)
+                if local_time.date() != today:
+                    continue
+                if forecast_time > horizon:
+                    continue
+                hours = max(0.0, (forecast_time - dt_util.utcnow()).total_seconds() / 3600)
+            else:
+                hours = None
+
+            temperature = _coerce_float(forecast.get("temperature"))
+            if temperature is not None:
+                if forecast_high is None or temperature > forecast_high:
+                    forecast_high = temperature
+                    forecast_high_hours = hours
+                if forecast_low is None or temperature < forecast_low:
+                    forecast_low = temperature
+
+            templow = _coerce_float(forecast.get("templow"))
+            if templow is not None and (forecast_low is None or templow < forecast_low):
+                forecast_low = templow
+
+        return forecast_high, forecast_low, forecast_high_hours
 
     def _weather_forecasts(self, state: State) -> list[dict[str, object]]:
         for attribute in ("forecast_hourly", "forecast", "forecast_daily"):
