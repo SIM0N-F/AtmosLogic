@@ -415,13 +415,18 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         details = recommendation.details
         inputs = details.get("inputs", {})
         signals = details.get("signals", {})
+        breakdown = details.get("breakdown", {})
         return {
             "score": recommendation.laundry_score,
-            "drying_time_estimation": None,
+            "drying_window_hours": breakdown.get("laundry_drying_window_hours"),
+            "drying_time_estimation": breakdown.get("laundry_drying_time_estimation"),
             "rain_risk": bool(signals.get("rain_detected") or signals.get("rain_forecast")),
+            "rain_forecast": bool(signals.get("rain_forecast")),
+            "rain_forecast_hours": inputs.get("weather_rain_forecast_hours"),
             "humidity": inputs.get("outdoor_humidity"),
             "wind": inputs.get("wind_speed") or inputs.get("wind_gust"),
             "temperature": inputs.get("outdoor_temperature"),
+            "sunset_in_hours": inputs.get("sun_next_setting_hours"),
             "reasons": details.get("reasons", {}).get("laundry", []),
             "confidence": details.get("confidence", 0),
         }
@@ -451,6 +456,7 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         global_score = self._global_score(rooms, recommendation)
         priority_room = self._priority_room(rooms)
         next_action = self._next_action(rooms)
+        summary = recommendation.details.get("summary", {})
 
         return {
             "room_count": len(self.config.room_configs),
@@ -464,6 +470,8 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             "cover_recommendation": recommendation.cover_recommendation,
             "laundry_recommendation": recommendation.laundry_recommendation,
             "laundry_score": recommendation.laundry_score,
+            "laundry_drying_window_hours": summary.get("laundry_drying_window_hours"),
+            "laundry_drying_time_estimation": summary.get("laundry_drying_time_estimation"),
             "confidence": recommendation.details.get("confidence", 0),
             "reasons": recommendation.details.get("reasons", {}).get("home", []),
         }
@@ -537,6 +545,10 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
         solar_value, solar_unit = self._read_solar(config.solar_entity)
         sun_above_horizon = self._sun_above_horizon(sun_state)
         weather_rain_forecast = self._weather_rain_forecast(weather_state, config.rain_threshold) if weather_state else False
+        weather_rain_forecast_hours = (
+            self._weather_rain_forecast_hours(weather_state, config.rain_threshold) if weather_state else None
+        )
+        sun_next_setting_hours = self._time_until_attribute(sun_state, "next_setting")
 
         if weather_state is not None:
             weather_rain = self._weather_rain(weather_state, config.rain_threshold)
@@ -588,7 +600,9 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             solar_value=solar_value,
             solar_unit=solar_unit,
             sun_above_horizon=sun_above_horizon,
+            sun_next_setting_hours=sun_next_setting_hours,
             weather_rain_forecast=weather_rain_forecast,
+            weather_rain_forecast_hours=weather_rain_forecast_hours,
             weather_condition=weather_state.state if weather_state is not None else None,
             climate_current_temperature=climate_current_temperature,
             climate_hvac_action=str(climate_hvac_action) if climate_hvac_action is not None else None,
@@ -652,12 +666,32 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
             return False
         return None
 
+    def _time_until_attribute(self, state: State | None, attribute: str) -> float | None:
+        if state is None:
+            return None
+
+        value = state.attributes.get(attribute)
+        if not isinstance(value, str):
+            return None
+
+        parsed = dt_util.parse_datetime(value)
+        if parsed is None:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+
+        return max(0.0, (parsed - dt_util.utcnow()).total_seconds() / 3600)
+
     def _weather_rain_forecast(self, state: State, rain_threshold: float) -> bool:
+        return self._weather_rain_forecast_hours(state, rain_threshold) is not None
+
+    def _weather_rain_forecast_hours(self, state: State, rain_threshold: float) -> float | None:
         forecasts = self._weather_forecasts(state)
         if not forecasts:
-            return False
+            return None
 
         horizon = dt_util.utcnow() + timedelta(hours=12)
+        closest_hours: float | None = None
         for forecast in forecasts[:6]:
             if not isinstance(forecast, dict):
                 continue
@@ -667,18 +701,31 @@ class AtmosLogicCoordinator(DataUpdateCoordinator[AtmosLogicRecommendation | Non
                 continue
 
             condition = forecast.get("condition")
-            if isinstance(condition, str) and condition.lower().strip() in {"rainy", "pouring", "lightning-rainy", "snowy", "hail"}:
-                return True
+            rain_condition = isinstance(condition, str) and condition.lower().strip() in {
+                "rainy",
+                "pouring",
+                "lightning-rainy",
+                "snowy",
+                "hail",
+            }
 
             precipitation = _coerce_float(forecast.get("precipitation"))
             precipitation_intensity = _coerce_float(forecast.get("precipitation_intensity"))
-            if any(
+            rain_amount = any(
                 value is not None and value >= rain_threshold
                 for value in (precipitation, precipitation_intensity)
-            ):
-                return True
+            )
+            if not rain_condition and not rain_amount:
+                continue
 
-        return False
+            if forecast_time is None:
+                return 0.0
+
+            hours = max(0.0, (forecast_time - dt_util.utcnow()).total_seconds() / 3600)
+            if closest_hours is None or hours < closest_hours:
+                closest_hours = hours
+
+        return closest_hours
 
     def _weather_forecasts(self, state: State) -> list[dict[str, object]]:
         for attribute in ("forecast_hourly", "forecast", "forecast_daily"):

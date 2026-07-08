@@ -102,7 +102,7 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertEqual(recommendation.window_recommendation, "keep_closed")
         self.assertEqual(recommendation.cover_recommendation, "close")
         self.assertLess(recommendation.laundry_score, 50)
-        self.assertEqual(recommendation.laundry_recommendation, "poor")
+        self.assertEqual(recommendation.laundry_recommendation, "impossible")
 
     def test_nighttime_discourages_laundry(self) -> None:
         config = make_config()
@@ -118,10 +118,13 @@ class RecommendationEngineTest(unittest.TestCase):
 
         recommendation = compute_recommendation(config, reading)
 
-        self.assertEqual(recommendation.laundry_recommendation, "poor")
+        self.assertEqual(recommendation.laundry_recommendation, "impossible")
         self.assertFalse(recommendation.good_for_laundry)
+        self.assertEqual(recommendation.laundry_score, 10)
         self.assertTrue(recommendation.details["signals"]["night"])
         self.assertIn("nighttime", recommendation.details["reasons"]["laundry"])
+        self.assertEqual(recommendation.details["summary"]["laundry_drying_time_estimation"], "impossible")
+        self.assertEqual(recommendation.details["summary"]["laundry_drying_window_hours"], 0.0)
 
     def test_forecast_rain_discourages_laundry(self) -> None:
         config = make_config()
@@ -142,6 +145,30 @@ class RecommendationEngineTest(unittest.TestCase):
         self.assertFalse(recommendation.good_for_laundry)
         self.assertTrue(recommendation.details["signals"]["rain_forecast"])
         self.assertIn("rain_forecast", recommendation.details["reasons"]["laundry"])
+
+    def test_forecast_rain_with_delay_keeps_window_limited(self) -> None:
+        config = make_config()
+        reading = AtmosLogicInput(
+            indoor_temperature=25.0,
+            outdoor_temperature=21.0,
+            outdoor_humidity=45.0,
+            wind_speed=8.0,
+            solar_value=120.0,
+            solar_unit="%",
+            sun_above_horizon=True,
+            sun_next_setting_hours=8.0,
+            weather_rain_forecast=True,
+            weather_rain_forecast_hours=1.5,
+        )
+
+        recommendation = compute_recommendation(config, reading)
+
+        self.assertEqual(recommendation.laundry_recommendation, "poor")
+        self.assertFalse(recommendation.good_for_laundry)
+        self.assertEqual(recommendation.details["breakdown"]["laundry_drying_window_hours"], 1.5)
+        self.assertEqual(recommendation.details["summary"]["laundry_drying_time_estimation"], "1-2h")
+        self.assertIn("rain_forecast_soon", recommendation.details["reasons"]["laundry"])
+        self.assertIn("very_short_drying_window", recommendation.details["reasons"]["laundry"])
 
     def test_heating_with_sunlight_opens_covers(self) -> None:
         config = make_config(mode="winter")

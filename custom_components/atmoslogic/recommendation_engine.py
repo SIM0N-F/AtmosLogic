@@ -63,6 +63,39 @@ def _is_night(reading: AtmosLogicInput) -> bool:
     return False
 
 
+def _drying_window_hours(reading: AtmosLogicInput) -> float | None:
+    daylight_hours: float | None
+    if reading.sun_above_horizon is False:
+        daylight_hours = 0.0
+    else:
+        daylight_hours = reading.sun_next_setting_hours
+
+    rain_hours = reading.weather_rain_forecast_hours
+    if reading.rain_detected:
+        rain_hours = 0.0
+
+    windows = [value for value in (daylight_hours, rain_hours) if value is not None]
+    if not windows:
+        return None
+    return max(0.0, min(windows))
+
+
+def _drying_time_estimation(hours: float | None) -> str | None:
+    if hours is None:
+        return None
+    if hours <= 0:
+        return "impossible"
+    if hours < 1:
+        return "<1h"
+    if hours < 2:
+        return "1-2h"
+    if hours < 4:
+        return "2-4h"
+    if hours < 6:
+        return "4-6h"
+    return "6h+"
+
+
 def _confidence(reading: AtmosLogicInput) -> int:
     score = 100
     penalties = (
@@ -294,14 +327,15 @@ def _cover_reasons(
     return reasons
 
 
-def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: bool, strong_wind: bool) -> tuple[int, list[dict[str, Any]]]:
+def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: bool, strong_wind: bool) -> tuple[int, list[dict[str, Any]], float | None]:
     if not config.laundry_enabled:
-        return 0, [{"reason": "module_disabled", "delta": 0}]
+        return 0, [{"reason": "module_disabled", "delta": 0}], None
 
     score = 50
     components: list[dict[str, Any]] = [{"reason": "base", "delta": 50}]
     wind = _effective_wind_speed(reading)
     solar = _solar_available(reading)
+    drying_window_hours = _drying_window_hours(reading)
 
     if reading.outdoor_temperature > 18:
         score += 20
@@ -332,15 +366,36 @@ def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: boo
     if rain:
         score -= 50
         components.append({"reason": "rain", "delta": -50})
+        drying_window_hours = 0.0
 
     night = _is_night(reading)
     if night:
         score -= 35
         components.append({"reason": "nightfall", "delta": -35})
+    elif reading.sun_next_setting_hours is not None and reading.sun_next_setting_hours <= 2:
+        score -= 25
+        components.append({"reason": "sunset_soon", "delta": -25})
+    elif reading.sun_next_setting_hours is not None and reading.sun_next_setting_hours <= 4:
+        score -= 10
+        components.append({"reason": "daylight_short", "delta": -10})
 
     if reading.weather_rain_forecast:
-        score -= 35
-        components.append({"reason": "rain_forecast", "delta": -35})
+        rain_window = reading.weather_rain_forecast_hours
+        if rain_window is None:
+            score -= 35
+            components.append({"reason": "rain_forecast", "delta": -35})
+        elif rain_window <= 1:
+            score -= 45
+            components.append({"reason": "rain_forecast_imminent", "delta": -45})
+        elif rain_window <= 3:
+            score -= 35
+            components.append({"reason": "rain_forecast_soon", "delta": -35})
+        elif rain_window <= 6:
+            score -= 20
+            components.append({"reason": "rain_forecast_possible", "delta": -20})
+        else:
+            score -= 10
+            components.append({"reason": "rain_forecast_later", "delta": -10})
 
     if reading.outdoor_temperature < 8:
         score -= 15
@@ -350,13 +405,24 @@ def _laundry_score(config: AtmosLogicConfig, reading: AtmosLogicInput, rain: boo
         score -= 15
         components.append({"reason": "too_windy", "delta": -15})
 
-    if night and reading.weather_rain_forecast:
-        score = min(score, 20)
+    if drying_window_hours is not None:
+        if drying_window_hours <= 0:
+            score = min(score, 10)
+            components.append({"reason": "no_drying_window", "delta": 0})
+        elif drying_window_hours < 2:
+            score = min(score, 20)
+            components.append({"reason": "very_short_drying_window", "delta": 0})
+        elif drying_window_hours < 4:
+            score = min(score, 40)
+            components.append({"reason": "short_drying_window", "delta": 0})
+        elif drying_window_hours < 6:
+            score = min(score, 60)
+            components.append({"reason": "moderate_drying_window", "delta": 0})
     elif night or reading.weather_rain_forecast:
         score = min(score, 35)
 
     score = int(clamp(score, 0, 100))
-    return score, components
+    return score, components, drying_window_hours
 
 
 def _laundry_reasons(
@@ -364,6 +430,7 @@ def _laundry_reasons(
     rain: bool,
     strong_wind: bool,
     laundry_components: list[dict[str, Any]],
+    drying_window_hours: float | None,
 ) -> list[str]:
     reasons = [str(component.get("reason")) for component in laundry_components if component.get("reason")]
     if rain:
@@ -372,8 +439,21 @@ def _laundry_reasons(
         reasons.append("strong_wind_detected")
     if _is_night(reading):
         reasons.append("nighttime")
+    elif reading.sun_next_setting_hours is not None and reading.sun_next_setting_hours <= 2:
+        reasons.append("sunset_soon")
+    elif reading.sun_next_setting_hours is not None and reading.sun_next_setting_hours <= 4:
+        reasons.append("daylight_short")
     if reading.weather_rain_forecast:
         reasons.append("rain_forecast")
+    if drying_window_hours is not None:
+        if drying_window_hours <= 0:
+            reasons.append("no_drying_window")
+        elif drying_window_hours < 2:
+            reasons.append("very_short_drying_window")
+        elif drying_window_hours < 4:
+            reasons.append("short_drying_window")
+        elif drying_window_hours < 6:
+            reasons.append("moderate_drying_window")
     return list(dict.fromkeys(reasons))
 
 
@@ -399,9 +479,10 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
     home_mode = _home_mode(config, reading, rain, strong_wind)
     window_recommendation = _window_recommendation(config, reading, rain, strong_wind)
     cover_recommendation = _cover_recommendation(config, reading, rain, strong_wind)
-    laundry_score, laundry_components = _laundry_score(config, reading, rain, strong_wind)
+    laundry_score, laundry_components, drying_window_hours = _laundry_score(config, reading, rain, strong_wind)
     laundry_recommendation = _laundry_recommendation(laundry_score)
-    laundry_reasons = _laundry_reasons(reading, rain, strong_wind, laundry_components)
+    laundry_reasons = _laundry_reasons(reading, rain, strong_wind, laundry_components, drying_window_hours)
+    drying_time_estimation = _drying_time_estimation(drying_window_hours)
 
     details: dict[str, Any] = {
         "config": {
@@ -433,6 +514,8 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
         "breakdown": {
             "thermal_score": thermal_score,
             "laundry_components": laundry_components,
+            "laundry_drying_window_hours": drying_window_hours,
+            "laundry_drying_time_estimation": drying_time_estimation,
         },
         "recommendations": {
             "home_mode": home_mode,
@@ -447,6 +530,8 @@ def compute_recommendation(config: AtmosLogicConfig, reading: AtmosLogicInput) -
             "laundry_recommendation": laundry_recommendation,
             "thermal_score": thermal_score,
             "laundry_score": laundry_score,
+            "laundry_drying_window_hours": drying_window_hours,
+            "laundry_drying_time_estimation": drying_time_estimation,
         },
     }
 
